@@ -1,6 +1,6 @@
 clear; close all;
 
-addpath(genpath("C:\irec-2025-analysis\lmatlib"))
+addpath(genpath("C:\lmatlib"))
 
 % Load the OTIS rocket file
 otis_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
