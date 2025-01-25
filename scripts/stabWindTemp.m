@@ -39,6 +39,7 @@ for iTemp = 1:nTemps
         
         % Store stability margin at 0.26 seconds
         stabOffRod(jWind) = data{126, 'Stability margin'};
+        disp(stabOffRod)
     end
     
     % Store results in corresponding temperature column
