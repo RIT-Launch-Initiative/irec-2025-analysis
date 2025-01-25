@@ -14,41 +14,41 @@ sim = otis.sims("MATLAB");
 opts = sim.getOptions();
 
 %set config
-windSpeeds = [1:1:15];
-windSpeed
-nSims = numel(windSpeeds);
-
+nSims = 10;
 figure;
+turbIntesity = 1;
+opts.setWindTurbulenceIntensity(15)
+stabOffRod = zeros(1,nSims);
+
 for I = 1:nSims
-    windSpeed = windSpeeds(1,nSims)
-    opts.setWindSpeedAverage(windSpeed);        % For demonstration, 0 m/s
-    opts.setWindTurbulenceIntensity(10)
+    opts.setWindSpeedAverage(15);        % For demonstration, 0 m/s
     opts.setLaunchTemperature(25 + 273.15);  % 25°C
-   
-    
+    opts.setWindTurbulenceIntensity(15)
+      
     % Run single simulation
     iSim = openrocket.simulate(sim, outputs="ALL");
     
     % Retrieve simulation data
     data = openrocket.get_data(sim);
-
+    curStability = data(126, "Stability margin");
     
     plot3(data.("Position East of launch")*3.28084, ...
       data.("Position North of launch")*3.28084, ...
       data.Altitude*3.28084, 'LineWidth', 1.5);
     hold on;
+    grid on;
 end
-
-
-figure;
-
-grid on;
 
 view(3);
 xlabel('Position East (ft)');
 ylabel('Position North (ft)');
 zlabel('Altitude (ft)');
 title('3D Trajectory (15mph,10%turb))');
+
+figure
+histogram(stabOffRod)
+
+
 
 
 
