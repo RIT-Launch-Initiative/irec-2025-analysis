@@ -33,17 +33,22 @@ data = openrocket.get_data(sim);
 plot3(data.("Position East of launch")*3.28084, ...
   data.("Position North of launch")*3.28084, ...
   data.Altitude*3.28084, 'LineWidth', 1.5);
+
+matrix_zx = zeros(height(data),2);
+matrix_zx  data.("Altitude"),data.("Position East of launch")
+
+
 hold on;
 grid on;
 
 view(3);
 xlabel('Position East (ft)');
+xlim([-500 3000])
 ylabel('Position North (ft)');
+ylim([0 3])
 zlabel('Altitude (ft)');
 title('3D Trajectory (15mph,10%turb))');
 
-figure
-histogram(stabOffRod)
 
 
 

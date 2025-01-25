@@ -29,21 +29,32 @@ iSim = openrocket.simulate(sim, outputs="ALL");
 % Retrieve simulation data
 data = openrocket.get_data(sim);
 
+matrix_zx = zeros(height(data),3);
+matrix_zx (:,3) = data.Altitude;
+matrix_zx (:,1) = data.("Position East of launch");
+
+
 
 plot3(data.("Position East of launch")*3.28084, ...
   data.("Position North of launch")*3.28084, ...
   data.Altitude*3.28084, 'LineWidth', 1.5);
+
 hold on;
 grid on;
 
+plot3(matrix_zx(:,1),(matrix_zx(:,2)),matrix_zx(:,3))
+
+
+
+
 view(3);
 xlabel('Position East (ft)');
+xlim([-500 3000])
 ylabel('Position North (ft)');
+ylim([0 3])
 zlabel('Altitude (ft)');
 title('3D Trajectory (15mph,10%turb))');
 
-figure
-histogram(stabOffRod)
 
 
 
