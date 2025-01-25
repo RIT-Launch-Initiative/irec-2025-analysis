@@ -14,7 +14,7 @@ sim = otis.sims("MATLAB");
 opts = sim.getOptions();
 
 % Configuration parameters
-windSpeeds = 0:2.5:30;
+windSpeeds = 0:10:30;
 temperature = 10:2.5:46;  % Now handles any number of temperatures
 nSims = numel(windSpeeds);
 nTemps = numel(temperature);
