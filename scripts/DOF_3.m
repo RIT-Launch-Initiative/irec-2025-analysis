@@ -41,17 +41,17 @@ hold on;
 grid on;
 
 zlim([0 12000])
-ylim([0 3000])
-x
+ylim([0 3])
+xlim([0 3000])
 
 % XY projection (Z=0)
-plot3(x_ft, y_ft, zeros(size(z_ft)), '--', 'LineWidth', 1.5, 'DisplayName','XY Projection');
+plot3(x_ft, y_ft, zeros(size(z_ft)), ':', 'LineWidth', 1.5, 'DisplayName','XY Projection');
 
 % YZ projection (X=0)
-plot3(zeros(size(x_ft)), y_ft, z_ft, '--', 'LineWidth', 1.5, 'DisplayName','YZ Projection');
+plot3(zeros(size(x_ft)), y_ft, z_ft, ':', 'LineWidth', 1.5, 'DisplayName','YZ Projection');
 
 % XZ projection (Y=0)
-plot3(x_ft, zeros(size(y_ft)), z_ft, '--', 'LineWidth', 1.5, 'DisplayName','XZ Projection');
+plot3(x_ft, zeros(size(y_ft)), z_ft, ':', 'LineWidth', 1.5, 'DisplayName','XZ Projection');
 
 xlabel('East (ft)');
 ylabel('North (ft)');
