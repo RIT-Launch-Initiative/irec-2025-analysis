@@ -20,7 +20,7 @@ turbIntesity = 1;
 opts.setWindTurbulenceIntensity(.15)
 opts.setWindSpeedAverage(10*0.447); 
 opts.setLaunchTemperature(25 + 273.15);  % 25°C
-stabOffRod = zeros(nSims,2);
+stabOffRod = zeros(nSims,1);
 
 
 for I = 1:nSims      
@@ -41,10 +41,8 @@ for I = 1:nSims
 
 end
 
-
 figure
-histogram(stabOffRod)
-
+hist(stabOffRod)
 
 
 

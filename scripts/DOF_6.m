@@ -41,6 +41,10 @@ velocity_fts = data.("Total velocity") * ft;
 % Convert time to numeric seconds (if duration)
 time_s = seconds(data.Time);
 
+% Find the apogee
+[apogeeAltitude, apogeeIndex] = max(z_ft); % Max altitude and its index
+apogeePosition = [x_ft(apogeeIndex), y_ft(apogeeIndex), apogeeAltitude];
+
 % Create figure
 fig = figure('Name','Animated Rocket Trajectory');
 fig.Color = [1 1 1];
@@ -48,13 +52,15 @@ hold on;
 grid on;
 
 % Plot static reference lines (XY, YZ, XZ) in dotted grey
-plot3(x_ft, y_ft, zeros(size(z_ft)), ':', 'Color','r','HandleVisibility','off');
-plot3(zeros(size(x_ft)), y_ft, z_ft, ':', 'Color','g','HandleVisibility','off');
-plot3(x_ft, zeros(size(y_ft)), z_ft, ':', 'Color','b','HandleVisibility','off');
+plot3(x_ft, y_ft, zeros(size(z_ft)), '--', 'Color','r','HandleVisibility','off');
+plot3(zeros(size(x_ft)), y_ft, z_ft, '--', 'Color','g','HandleVisibility','off');
+plot3(x_ft, zeros(size(y_ft)), z_ft, '--', 'Color','b','HandleVisibility','off');
 
 % Trajectory line and rocket marker
 pathLine = plot3(NaN, NaN, NaN, 'b-', 'LineWidth', 1.5, 'DisplayName','Trajectory');
 rocketMarker = scatter3(NaN, NaN, NaN, 60, 'filled', 'DisplayName','Rocket');
+apogeeMarker = scatter3(apogeePosition(1), apogeePosition(2), apogeePosition(3), 100, 'r', 'filled', 'DisplayName', 'Apogee');
+
 
 xlabel('East (ft)');
 ylabel('North (ft)');
@@ -93,6 +99,13 @@ for i = 1:nPoints
 
     % Update time text
     set(timeText, 'String', sprintf('Time = %.2f s', currSimTime));
+
+    % Ensure apogee marker is only visible after it's reached
+    if i >= apogeeIndex
+        set(apogeeMarker, 'Visible', 'on');
+    else
+        set(apogeeMarker, 'Visible', 'off');
+    end
 
     % Draw updates
     drawnow;

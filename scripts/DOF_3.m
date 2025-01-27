@@ -39,23 +39,28 @@ figure('Name','Rocket Trajectory with 2D projections');
 plot3(x_ft, y_ft, z_ft, 'LineWidth', 1.5, 'DisplayName','3D Trajectory');
 hold on;
 grid on;
+axis padded;
+
 
 zlim([0 12000])
-ylim([0 3])
-xlim([0 3000])
+xlim([0 inf]) 
+ylim([0 inf])
 
 % XY projection (Z=0)
-plot3(x_ft, y_ft, zeros(size(z_ft)), ':', 'LineWidth', 1.5, 'DisplayName','XY Projection');
+plot3(x_ft, y_ft, zeros(size(z_ft)), '--', 'LineWidth', 1.5, 'DisplayName','XY Projection');
 
 % YZ projection (X=0)
-plot3(zeros(size(x_ft)), y_ft, z_ft, ':', 'LineWidth', 1.5, 'DisplayName','YZ Projection');
+plot3(zeros(size(x_ft)), y_ft, z_ft, '--', 'LineWidth', 1.5, 'DisplayName','YZ Projection');
 
 % XZ projection (Y=0)
-plot3(x_ft, zeros(size(y_ft)), z_ft, ':', 'LineWidth', 1.5, 'DisplayName','XZ Projection');
+plot3(x_ft, zeros(size(y_ft)), z_ft, '--', 'LineWidth', 1.5, 'DisplayName','XZ Projection');
 
 xlabel('East (ft)');
 ylabel('North (ft)');
 zlabel('Altitude (ft)');
+[apogeeAltitude, apogeeIndex] = max(z_ft); % Max altitude and its index
+apogeePosition = [x_ft(apogeeIndex), y_ft(apogeeIndex), apogeeAltitude];
+apogeeMarker = scatter3(apogeePosition(1), apogeePosition(2), apogeePosition(3), 100, 'r', 'filled', 'DisplayName', 'Apogee');
 
 title('3D Trajectory with XY, YZ, and XZ Projections');
 legend;
