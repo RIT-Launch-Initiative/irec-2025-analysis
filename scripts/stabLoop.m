@@ -1,9 +1,9 @@
 clear; close all;
 
-addpath(genpath("C:\lmatlib"))
+addpath(genpath("C:\\lmatlib"))
 
 % Load the OTIS rocket file
-otis_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+otis_path = "C:\\irec-2025-analysis\\IREC_2025_M6000ST-0.ork";
 if ~isfile(otis_path)
     error("No document '%s' found. Ensure the path is correct.", otis_path);
 end
@@ -12,32 +12,40 @@ end
 otis = openrocket(otis_path);
 sim = otis.sims("MATLAB");
 opts = sim.getOptions();
-nSims = 3;
-masterData = zeros(2,nSims);
-lowerWind = 0;
-upperWind = 20;
-r = lowerWind + (upperWind-lowerWind).*rand(nSims,1);
-masterData(:,2)
 
 
+%set config
+nSims = 100;
+turbIntesity = 1;
+opts.setWindTurbulenceIntensity(.15)
+opts.setWindSpeedAverage(10*0.447); 
+opts.setLaunchTemperature(25 + 273.15);  % 25°C
+stabOffRod = zeros(nSims,1);
 
-% run sim several times with turbulance
-for nSims = 1:nSims
-    % Configure simulation
 
-    opts.setWindSpeedAverage(r(nSims,1))
-    
-    % Run simulation and get data
+for I = 1:nSims      
+    % Run single simulation
     iSim = openrocket.simulate(sim, outputs="ALL");
-    data = openrocket.get_data(sim);
     
-    % Store stability margin at 0.26 seconds
-    stabOffRod = data{126, 'Stability margin'};  
-    masterData(1,nSims) = stabOffRod;
-end
-masterData = masterData';
+    % Retrieve simulation data
+    data = openrocket.get_data(sim);
+    curStability = data{126, "Stability margin"};
+    stabOffRod (I,1) = curStability;
+    disp(curStability)
+    % curWindSpeed = data{126,"Wind velocity"};
+    % stabOffRod (I,2) = curWindSpeed;
+    % disp(curWindSpeed)
 
-% save the stability data at certain point
-histogram(masterData)
+    %set the seed to random
+    opts.randomizeSeed 
+
+end
+
+figure
+hist(stabOffRod)
+
+
+
+
 
 

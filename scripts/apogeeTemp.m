@@ -15,7 +15,9 @@ opts = sim.getOptions();
 
 % Configuration parameters
 windSpeed = 6.7;  % Fixed wind speed at 15mph
-temperature = 10:5:50;
+opts.setWindTurbulenceIntensity(0)
+temperature = 10:1:46;
+temperatureF = (temperature * 9/5) + 32; % Convert to Fahrenheit
 nTemps = numel(temperature);
 
 % Preallocate cell arrays to store time and altitude data
@@ -43,22 +45,15 @@ end
 
 % Visualization
 figure;
-colors = parula(nTemps);  % Create unique colors for each temperature
-legendEntries = cell(nTemps, 1);
+bars = bar(temperatureF, cellfun(@(altData) max(altData), altitudeData), 'FaceColor', 'flat');
 
-for iTemp = 1:nTemps
-    plot(timeData{iTemp}, altitudeData{iTemp}, ...
-         'Color', colors(iTemp,:), ...
-         'DisplayName', sprintf('%0.1f°C', temperature(iTemp)));
-    hold on;
+% Color bars based on temperature
+for i = 1:nTemps
+    bars.CData(i, :) = [temperature(i) / max(temperature), 0.5, 1 - temperature(i) / max(temperature)];
 end
 
-hold off;
-
 % Plot formatting
-xlabel('Time (s)');
-ylabel('Altitude (ft)'); 
-title(sprintf('Altitude vs Time at Different Temperatures (Wind Speed = 15mph)'));
-legend('Location', 'best', 'NumColumns', 2);
-ylim([9500,10500]);
+xlabel('Temperature (°F)');
+ylabel('Max Altitude (ft)');
+title(sprintf('Max Altitude vs Temperature (Wind Speed = 15mph)'));
 grid on;
