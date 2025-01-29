@@ -1,61 +1,37 @@
-clear;
-addpath(genpath("C:\lmatlib"));
+function [maxAltitudes] = apogeeTemp(temperatures,simName,turbIntensity,windSpeed,otis_path)
 
-% Load the OTIS rocket file
-otis_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
-if ~isfile(otis_path)
-    error("No document '%s' found. Ensure the path is correct.", otis_path);
+    % Load the OTIS rocket file
+    if ~isfile(otis_path)
+        error("No document '%s' found. Ensure the path is correct.", otis_path);
+    end
+    
+    % Initialize OpenRocket
+    otis = openrocket(otis_path);
+    sim = otis.sims(simName);
+    opts = sim.getOptions();
+    
+    
+    % Configuration parameters
+    opts.setWindTurbulenceIntensity(turbIntensity);
+    nTemps = numel(temperatures);
+    
+    % Preallocate array for maximum altitudes
+    maxAltitudes = zeros(nTemps, 1);
+    
+    % Simulation loop
+    for iTemp = 1:nTemps
+        tSet = temperatures(iTemp)+273.15;
+        
+        % Configure simulation
+        opts.setWindSpeedAverage(windSpeed);
+        opts.setLaunchTemperature(tSet);  % Convert Celsius to Kelvin
+        
+        % Run simulation and get data
+        iSim = openrocket.simulate(sim, outputs="ALL");
+        data = openrocket.get_data(sim);
+        
+        % Store maximum altitude
+        maxAltitudes(iTemp) = max(data.Altitude);
+    end
+
 end
-
-% Initialize OpenRocket
-otis = openrocket(otis_path);
-sim = otis.sims("MATLAB");
-opts = sim.getOptions();
-
-% Configuration parameters
-windSpeed = 6.7;  % 6.7 m/s = 15 mph
-opts.setWindTurbulenceIntensity(0);
-temperature = 10:1:46;
-temperatureF = (temperature * 9/5) + 32; % Convert to Fahrenheit
-nTemps = numel(temperature);
-
-% Preallocate array for maximum altitudes
-maxAltitudes = zeros(nTemps, 1);
-
-% Simulation loop
-for iTemp = 1:nTemps
-    tSet = temperature(iTemp);
-    
-    % Configure simulation
-    opts.setWindSpeedAverage(windSpeed);
-    opts.setLaunchTemperature(tSet + 273.15);  % Convert Celsius to Kelvin
-    opts.setLaunchAltitude(1828);              % Launch altitude in meters
-    
-    % Run simulation and get data
-    iSim = openrocket.simulate(sim, outputs="ALL");
-    data = openrocket.get_data(sim);
-    
-    % Store maximum altitude (convert meters to feet)
-    maxAltitudes(iTemp) = max(data.Altitude) * 3.28084;
-end
-
-% Visualization
-figure;
-plot(temperatureF, maxAltitudes, 'o-', 'MarkerFaceColor', 'b', 'LineWidth', 2);
-xlabel('Temperature (°F)');
-ylabel('Maximum Altitude (ft)');
-title(sprintf('Maximum Altitude vs Launch Temperature (Wind Speed = 15 mph)'));
-grid on;
-box on;
-ylim([8750 11250])
-yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-yline(9000, 'r--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-
-fontsize(16,"points")
-
-% Remove scientific notation from y-axis
-ax = gca;
-ax.YAxis.Exponent = 0;
-ytickformat('%.0f');  % Format y-ticks as whole numbers
-

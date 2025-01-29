@@ -40,6 +40,7 @@ plot3(x_ft, y_ft, z_ft, 'LineWidth', 1.5, 'DisplayName','3D Trajectory');
 hold on;
 grid on;
 axis padded;
+fontsize(16,"points")
 
 
 zlim([0 12000])
