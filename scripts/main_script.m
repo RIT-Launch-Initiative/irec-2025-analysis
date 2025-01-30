@@ -19,6 +19,7 @@ temp = 36 +273.15;% kelvin converted to celcius
 m_sTOmph = 2.237136;
 sTomS = 1/1000;
 
+
 tiledlayout("vertical")
 
 %%
@@ -123,6 +124,7 @@ ylabel('Maximum Altitude (ft)');
 title(sprintf('Maximum Altitude vs Launch Angle (Wind Speed = 15 mph)'));
 grid on;
 box on;
+axis padded;
 ylim([8750 11250])
 yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
 yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
@@ -145,8 +147,9 @@ maxAltitudes = maxAltitudes*3.28084;
 % Visualization
 nexttile
 plot(temperatures, maxAltitudes, 'o-', 'MarkerFaceColor', 'b', 'LineWidth', 2);
-xlabel('Temperature (°F)');
+xlabel('Temperature (°C)');
 ylabel('Maximum Altitude (ft)');
+axis padded;
 title(sprintf('Maximum Altitude vs Launch Temperature (Wind Speed = 15 mph)'));
 grid on;
 box on;
