@@ -35,107 +35,107 @@ h = findobj(gca,'Type','patch');
 h.FaceColor = ['#F76902'];
 h.EdgeColor = 'w';
 axis padded;
-xlabel('Stability (body calibers)'); % Corrected: use xlabel function
+ylabel('# of events');% ylabl function
+xlabel('Stability (body calibers)'); %xlabel function
 xline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-title('Standard Distribution of Stability Off the Rod'); % Corrected: use title function
 
-    %confidence interval for stability. this will give you a 95% CI for
-    %your stab off the rod
-    x = mean(stabOffRod);
-    z = 1.96;
-    s = std(stabOffRod);    
-    ci_high = x + z*(s/(sqrt(nSims)));
-    ci_low  = x - z*(s/(sqrt(nSims)));
+title('Standard Distribution of Stability Off the Rod at 15mph'); % Corrected: use title function
 
-    formatSpec = 'There is 0.95 probability that the stability off the rod at %4.1fm/s wind speed, will be between %4.2f cal and %4.2f cal\n';
-    fprintf(formatSpec,windSpeed,ci_low,ci_high)
-
-%%
-%stability vs. wind direction
-%configure
-
-windDirections = ()
-
-[stabOffRod,windOffRod] = stabWindDireciton(simName,nSims,turbIntensity,windSpeed,otis_path,temp);
-nexttile 
-hist(stabOffRod,(nSims/10));
-h = findobj(gca,'Type','patch');
-h.FaceColor = ['#F76902'];
-h.EdgeColor = 'w';
-axis padded;
-xlabel('Stability (body calibers)'); % Corrected: use xlabel function
-xline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-title('Standard Distribution of Stability Off the Rod'); % Corrected: use title function
-
-    %confidence interval for stability. this will give you a 95% CI for
-    %your stab off the rod
-    x = mean(stabOffRod);
-    z = 1.96;
-    s = std(stabOffRod);    
-    ci_high = x + z*(s/(sqrt(nSims)));
-    ci_low  = x - z*(s/(sqrt(nSims)));
-
-    formatSpec = 'There is 0.95 probability that the stability off the rod at %4.1fm/s wind speed, will be between %4.2f cal and %4.2f cal\n';
-    fprintf(formatSpec,windSpeed,ci_low,ci_high)
+%confidence interval for stability. this will give you a 95% CI for
+%your stab off the rod
+x = mean(stabOffRod);
+z = 1.96;
+s = std(stabOffRod);    
+ci_high = x + z*(s/(sqrt(nSims)));
+ci_low  = x - z*(s/(sqrt(nSims)));
 
 
-%%
-%temperatue vs apogee 
-%configure
-windSpeeds =(0:0.5:10);
-
-%run the sub script
-[stabWindData,timeStabWindData] = stabWindTemp (windSpeeds,otis_path,simName);
-windSpeeds = windSpeeds';
-% visulization 
-nexttile
-
-for I = 1:(height(windSpeeds))
-    scatter(m_sTOmph*(windSpeeds(I,1)),(stabWindData(I,1)),'filled','MarkerFaceColor','#F76902')
-    hold on;
-end
-
-x_fit = m_sTOmph*windSpeeds;
-y_fit_data = stabWindData;
-
-% Calculate quadratic fit coefficients
-p = polyfit(x_fit, y_fit_data, 2);
-x_fit_curve = linspace(min(x_fit), max(x_fit), 100);
-y_fit_curve = polyval(p, x_fit_curve);
-
-% Plot the quadratic fit
-plot(x_fit_curve, y_fit_curve, 'k--', 'LineWidth', 2, ...
-    'DisplayName', sprintf('Quadratic Fit'));
-
-xline(20, 'b--', 'Go/No-Go', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');   
-yline(1.5, 'b--', 'Minimum off the rod stability', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','left');
-xlabel('Wind Speed (mph)');
-ylabel('Apogee Altitude (m)');
-title('Apogee vs. Wind Speed at Different Temperatures');
-grid on;
-grid minor;
-axis padded;
-hold off;
-fontsize(16,"points")
-
-nexttile
-for I = 1:(height(timeStabWindData))
-    scatter(m_sTOmph*(windSpeeds(I,1)),(sTomS*timeStabWindData(I,1)),'filled','MarkerFaceColor','#F76902')
-    hold on;
-end
-
-xlabel('Wind Speed (mph)');
-ylabel('Time(ms)');
-title('Time to achive 1.5 cal stability');
-fontsize(16,"points")
-grid on;
-grid minor;
-axis padded;
+% %% wip 
+% %stability vs. wind direction
+% %configure
+% 
+% windDirections = (1);
+% 
+% [stabOffRod,windOffRod] = stabWindDireciton(simName,nSims,turbIntensity,windSpeed,otis_path,temp);
+% nexttile 
+% hist(stabOffRod,(nSims/10));
+% h = findobj(gca,'Type','patch');
+% h.FaceColor = ['#F76902'];
+% h.EdgeColor = 'w';
+% axis padded;
+% xlabel('Stability (body calibers)'); % Corrected: use xlabel function
+% xline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+% title('Standard Distribution of Stability Off the Rod'); % Corrected: use title function
+% 
+%     %confidence interval for stability. this will give you a 95% CI for
+%     %your stab off the rod
+%     x = mean(stabOffRod);
+%     z = 1.96;
+%     s = std(stabOffRod);    
+%     ci_high = x + z*(s/(sqrt(nSims)));
+%     ci_low  = x - z*(s/(sqrt(nSims)));
+% 
+%     formatSpec = 'There is 0.95 probability that the stability off the rod at %4.1fm/s wind speed, will be between %4.2f cal and %4.2f cal\n';
+%     fprintf(formatSpec,windSpeed,ci_low,ci_high)
 
 
-
-
-
+% %%
+% %temperatue vs apogee 
+% %configure
+% windSpeeds =(0:0.5:10);
+% 
+% %run the sub script
+% [stabWindData,timeStabWindData] = stabWindTemp (windSpeeds,otis_path,simName);
+% windSpeeds = windSpeeds';
+% % visulization 
+% nexttile
+% 
+% for I = 1:(height(windSpeeds))
+%     scatter(m_sTOmph*(windSpeeds(I,1)),(stabWindData(I,1)),'filled','MarkerFaceColor','#F76902')
+%     hold on;
+% end
+% 
+% x_fit = m_sTOmph*windSpeeds;
+% y_fit_data = stabWindData;
+% 
+% % Calculate quadratic fit coefficients
+% p = polyfit(x_fit, y_fit_data, 2);
+% x_fit_curve = linspace(min(x_fit), max(x_fit), 100);
+% y_fit_curve = polyval(p, x_fit_curve);
+% 
+% % Plot the quadratic fit
+% plot(x_fit_curve, y_fit_curve, 'k--', 'LineWidth', 2, ...
+%     'DisplayName', sprintf('Quadratic Fit'));
+% 
+% xline(20, 'b--', 'Go/No-Go', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');   
+% yline(1.5, 'b--', 'Minimum off the rod stability', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','left');
+% xlabel('Wind Speed (mph)');
+% ylabel('Apogee Altitude (m)');
+% title('Apogee vs. Wind Speed at Different Temperatures');
+% grid on;
+% grid minor;
+% axis padded;
+% hold off;
+% fontsize(16,"points")
+% 
+% nexttile
+% for I = 1:(height(timeStabWindData))
+%     scatter(m_sTOmph*(windSpeeds(I,1)),(sTomS*timeStabWindData(I,1)),'filled','MarkerFaceColor','#F76902')
+%     hold on;
+% end
+% 
+% xlabel('Wind Speed (mph)');
+% ylabel('Time(ms)');
+% title('Time to achive 1.5 cal stability');
+% fontsize(16,"points")
+% grid on;
+% grid minor;
+% axis padded;
+% 
+% 
+% 
+% 
+% 
 % %% apogee vs. launch angle
 % %configure
 % high_angle = 86;
