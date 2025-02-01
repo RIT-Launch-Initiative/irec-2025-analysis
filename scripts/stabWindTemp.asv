@@ -1,65 +1,226 @@
-function [stabWindData,timeToStab] = stabWindTemp (windSpeeds,otis_path,simName)
-      
-    nSims = numel(windSpeeds);
+%% FIN + NOSE WEIGHT OPTIMIZATION IN MKS
+%  Created by Ares Bustinza-Nguyen (Modified: 2/2/25)
 
-    % Initialize OpenRocket
-    otis = openrocket(otis_path);
-    sim = otis.sims(simName);
-    opts = sim.getOptions();
-    
-    % Preallocate master data matrix
-    stabWindData = zeros(nSims, nTemps + 1);  % +1 for wind speed column
-    stabWindData(:,1) = windSpeeds';  % Transpose to column vector
+clear; close all;
 
-    timeToStab = zeros(nSims,1);
-    
-    % Simulation loop
-    for jWind = 1:nSims
+%% 1. LOAD ROCKET + KEY COMPONENTS
 
-        % Configure simulation
-        opts.setWindSpeedAverage(windSpeeds(jWind));
-        
-        % Run simulation and get data
-        iSim = openrocket.simulate(sim, outputs="ALL");
-        data = openrocket.get_data(sim);
-        
-        %trim data
-        data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("BURNOUT"), "openleft");
-        data = data(data_range, :);
-            
-        % Check stability margin and time
-        stabilityMargin = data{:, 'Stability margin'};
-    
-        % Store stability margin at launchrod
-        stabOffRod(jWind) = stabilityMargin(1,1);
-           
-        
-        if stabOffRod(jWind) >= 1.5
-            timeToStability(jWind,1) = 0;
-        else
-            timeToStability(jWind,1) = stabOffRod(jWind); 
-            % Define the subarray starting at index 127
-            marginSubarray = stabilityMargin(1:end);
-            timeSubarray = seconds(data.Time(1:end));
-        
-            % Find the index range where stabilityMargin crosses 1.5
-            if any(marginSubarray >= 1.5)
-                % Use interp1 to find the exact time where stabilityMargin reaches 1.5
-                timeToStability(jWind,1) = (interp1(marginSubarray, timeSubarray, 1.5))-(timeSubarray(1,1));
-            else
-                timeToStability(jWind) = NaN;  % No stability achieved
-            end
-    
-        end
-
-        timeToStability(jWind,2) = windSpeeds(jWind);
-    
-        
-        disp = 'Stability %4.3f cal, at temp %4.1f C, at wind speed %4.1f, sim number %4.0f, time to stability: %4.3f s\n';
-        fprintf(disp, stabOffRod(jWind, 1), tSet, windSpeeds(jWind), jWind, timeToStability(jWind,2));
-    end
-    % Store results in corresponding temperature column
-    stabWindData(:, jWind + 1) = stabOffRod;
+% Path to your metric .ork file
+otis_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+if ~isfile(otis_path)
+    error("Error: not on path: %s", otis_path);
 end
 
+% Load rocket
+otis = openrocket(otis_path);
 
+% Select the simulation you want to run
+sim = otis.sims("15MPH-TEXAS-36C-(TYP)");
+opts = sim.getOptions;
+opts.setWindSpeedDeviation(0);
+opts.setTimeStep(0.05);
+
+% Access the single FinSet component
+fins = otis.component(class="FinSet");
+if ~isscalar(fins)
+    error("Error: multiple fin sets found");
+end
+
+% Access the adjustable nose weight component by name
+NoseWeight = otis.component(name="Adjustable stability weight");
+if isempty(NoseWeight)
+    error("Error: No nose weight component found by that name!");
+end
+
+%% 2. SET RANGES FOR VARIABLES (in MKS)
+
+% Example: you had thickness in inches, now converted to meters:
+%   0.003175 m  ~ 1/8 in, 
+%   0.0047625 m ~ 3/16 in,
+%   0.00635 m   ~ 1/4 in
+t_vals = [0.0047625];
+
+% Fin Sweep, Tip, Root, Height will be retrieved from OpenRocket in meters:
+Ls_or = fins.getSweep();       % nominal sweep in [m]
+Lt_or = fins.getTipChord();    % nominal tip chord [m]
+Lr_or = fins.getRootChord();   % nominal root chord [m]
+h_or  = fins.getHeight();      % nominal fin height [m]
+
+% Scale them by ± some percentage
+Ls_vals = Ls_or * (1.0);
+Lt_vals = Lt_or * (1.0);
+Lr_vals = Lr_or * (1.0);
+h_vals  = h_or  * (0.8 : 0.05 : 1.2);
+
+% Nose cone adjustable weight [kg]
+% Example range from 0 to 0.5 kg in steps of 0.05:
+nose_mass_vals = 0.00 : 0.05 : 0.50;
+
+%% 3. SETUP ND-GRID FOR ALL COMBINATIONS
+
+[t_g, Ls_g, Lt_g, Lr_g, h_g, nose_g] = ndgrid(...
+    t_vals, Ls_vals, Lt_vals, Lr_vals, h_vals, nose_mass_vals);
+
+num_elements = numel(t_g);
+fprintf("Total # of candidate designs: %d\n", num_elements);
+
+%% 4. PRE-ALLOCATE RESULTS
+
+% We'll collect:
+% [ iteration#, Apogee(m), maxStability, stabLaunchrod, t(m), Ls(m), Lt(m), Lr(m), h(m), NoseMass(kg), FOS ]
+results = NaN(num_elements, 11);
+row_index = 1;
+
+% If you have a custom fin flutter factor-of-safety function:
+f_flutter = @FOS_finflutter; % handle to your fin flutter function
+
+%% 5. BRUTE FORCE LOOP
+
+for i = 1:num_elements
+    
+    % Extract geometry & nose mass
+    on_t     = t_g(i);
+    on_Ls    = Ls_g(i);
+    on_Lt    = Lt_g(i);
+    on_Lr    = Lr_g(i);
+    on_h     = h_g(i);
+    on_noseM = nose_g(i);
+    
+    % Update the fin geometry
+    fins.setThickness(on_t); 
+    fins.setSweepAngle(on_Ls);
+    fins.setTipChord(on_Lt);
+    fins.setRootChord(on_Lr);
+    fins.setHeight(on_h);
+    
+    % Update the nose weight (in kg)
+    NoseWeight.setMassOverridden(on_noseM);
+    
+    % Rerun simulation with updated geometry + nose mass
+    sim = otis.sims("15MPH-TEXAS-36C-(TYP)");
+    opts = sim.getOptions;
+    opts.setWindSpeedDeviation(0);
+    
+    openrocket.simulate(sim);
+    data = openrocket.get_data(sim);
+
+    % --------------- EXTRACT PERFORMANCE METRICS ----------------
+
+    % Apogee [m]
+    apogee_m = data{eventfilter("APOGEE"), "Altitude"};
+
+    % Fin Flutter FOS
+    FINAL_FOS = f_flutter(data, fins);  % must be > 1.5
+
+    % Entire flight stability margin
+    stability_all = data{:,"Stability margin"};
+    maxStability  = max(stability_all);
+
+    % Stability off the rail using provided snippet
+    data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("BURNOUT"), "openleft");
+    data_trim = data(data_range, :);
+    if isempty(data_trim)
+        % fallback if no data in that range
+        stb_launchrod = stability_all(1);
+    else
+        stabilityMargin_trim = data_trim{:,"Stability margin"};
+        stb_launchrod = stabilityMargin_trim(1);
+    end
+
+    % --------------- ENFORCE CONSTRAINTS ----------------
+    % 1) FOS > 1.5
+    % 2) Stability off the rail > 1.5
+    % 3) Max stability < 4.0
+    % 4) 2895.6 m < apogee < 3200.4 m  (10k ft ±5%)
+    if (FINAL_FOS > 1.5) && ...
+       (stb_launchrod > 1.0) && ...
+       (maxStability < 4.0) && ...
+       (apogee_m > 2895.6) && (apogee_m < 3200.4)
+   
+        % Save relevant data
+        results(row_index,:) = [i, apogee_m, maxStability, stb_launchrod, ...
+                                on_t, on_Ls, on_Lt, on_Lr, on_h, on_noseM, FINAL_FOS];
+        row_index = row_index + 1;
+    end
+    
+end
+
+%% 6. TRIM RESULTS & FIND "BEST" DESIGN (Min Nose Mass)
+
+results = results(~any(isnan(results),2), :);
+% columns:
+%   1) iteration index
+%   2) apogee(m)
+%   3) maxStability
+%   4) stability@rail
+%   5) t (m)
+%   6) Ls (m)
+%   7) Lt (m)
+%   8) Lr (m)
+%   9) h (m)
+%   10) noseMass(kg)
+%   11) FOS
+
+if isempty(results)
+    disp("No designs satisfied the constraints!");
+    return
+end
+
+% Among valid designs, pick the one with minimal nose mass:
+[~, idx_minNose] = min(results(:,10));  % col 10 is noseMass
+best_design = results(idx_minNose, :);
+
+%% 7. DISPLAY RESULTS TABLE
+
+titles = {...
+    'Iter#','Apogee(m)','MaxStab','Stab@Rail','t(m)','Ls(m)',...
+    'Lt(m)','Lr(m)','h(m)','NoseMass(kg)','FOS'};
+
+fprintf('\nAll Valid Solutions:\n');
+fprintf('%-6s %-10s %-10s %-10s %-8s %-8s %-8s %-8s %-8s %-12s %-8s\n', titles{:});
+for r = 1:size(results,1)
+    fprintf('%-6d %-10.1f %-10.3f %-10.3f %-8.5f %-8.5f %-8.5f %-8.5f %-8.5f %-12.5f %-8.3f\n',...
+        results(r,1), results(r,2), results(r,3), results(r,4), ...
+        results(r,5), results(r,6), results(r,7), results(r,8), ...
+        results(r,9), results(r,10), results(r,11));
+end
+
+disp(" ");
+disp("BEST DESIGN (minimal Nose Mass among constraints):");
+disp(array2table(best_design, 'VariableNames', titles));
+
+%% 8. QUICK DATA VISUALIZATION
+
+figure('Name','Fin + Nose Weight Trade Study - MKS','Color','w');
+
+% (a) Apogee vs NoseMass
+subplot(2,2,1);
+scatter(results(:,10), results(:,2), 30, 'b','filled');
+xlabel('Nose Mass [kg]');
+ylabel('Apogee [m]');
+title('Apogee vs Nose Mass');
+grid on;
+
+% (b) Stability off Rail vs NoseMass
+subplot(2,2,2);
+scatter(results(:,10), results(:,4), 30, 'r','filled');
+xlabel('Nose Mass [kg]');
+ylabel('Stability @ Rail (dimensionless)');
+title('Stability @ Rail vs Nose Mass');
+grid on;
+
+% (c) Max Stability vs Apogee
+subplot(2,2,3);
+scatter(results(:,2), results(:,3), 30, 'g','filled');
+xlabel('Apogee [m]');
+ylabel('Max Stability');
+title('Max Stability vs Apogee');
+grid on;
+
+% (d) FOS vs NoseMass
+subplot(2,2,4);
+scatter(results(:,10), results(:,11), 30, 'k','filled');
+xlabel('Nose Mass [kg]');
+ylabel('Fin Flutter FOS');
+title('FOS vs Nose Mass');
+grid on;
