@@ -14,6 +14,7 @@ function [stabOffRod,windOffRod] = stabWindDirection(simName,nSims,turbIntensity
     opts.setWindTurbulenceIntensity(turbIntensity)
     opts.setWindSpeedAverage(windSpeed); 
     opts.setLaunchTemperature(temp);  % 25°C
+    opts.set
     stabOffRod = zeros(nSims,1);
     windOffRod = zeros(nSims,1);
     

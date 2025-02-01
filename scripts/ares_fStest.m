@@ -24,7 +24,7 @@ sim_name = "15MPH-TEXAS-36C-(TYP)";
 wind_speed_deviation = 0;
 
 % Desired time step for simulation [s]
-time_step = 0.01;
+time_step = 0.08;
 
 % Fin thickness values [m]
 % Example: 0.003175 m ~ 1/8 in, 0.0047625 m ~ 3/16 in, 0.00635 m ~ 1/4 in
@@ -33,22 +33,24 @@ t_vals = [0.00635];
 % Sweep, tip chord, root chord, and height scaling:
 % You can scale them around the nominal values from the .ork file.
 % For example, 80% to 120% in steps of 5%.
-Ls_scale = 1;  % Sweep scale factor
-h_scale  = 0.8 : 0.05 : 1.2;  % Height scale factor
-Lt_scale = 0.8 : 0.05 : 1.2;
+Ls_scale = 0.8:0.05:1.2;  % Sweep scale factor
+h_scale  = 0.8:0.05:1.2;  % Height scale factor
+Lt_scale = 1;
  
 % For tip chord (Lt) and root chord (Lr), keep them fixed at 100%.
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
-nose_mass_vals = 0.00 : 0.1 : 2.50;
+nose_mass_vals = 0.00 : 0.1 : 2.5;
 
 % Constraints
 FOS_min         = 1.5;   % Fin flutter factor of safety must be > 1.5
-stability_rail  = 1.5;   % Stability margin off rail must be > 1.4 (example)
-stability_max   = 3.9;   % Max stability during flight must be < 4.0
+stability_rail  = 1.3;   % Stability margin off rail must be > 1.4 (example)
+stability_max   = 3.95;   % Max stability during flight must be < 4.0
 apogee_lower    = 2895.6; % ~9500 ft in meters
 apogee_upper    = 3200.4; % ~10500 ft in meters
+
+minSweepAngle = 20;
 
 %% 2. LOAD ROCKET + KEY COMPONENTS
 
@@ -82,6 +84,7 @@ Ls_nom = fins.getSweep();      % nominal sweep (m)
 Lt_nom = fins.getTipChord();   % nominal tip chord (m)
 Lr_nom = fins.getRootChord();  % nominal root chord (m)
 h_nom  = fins.getHeight();     % nominal fin height (m)
+
 
 %% 3. SET UP THE ND-GRID (ALL CANDIDATE DESIGNS)
 
@@ -168,6 +171,7 @@ for i = 1:num_elements
     
     % Fin Flutter FOS
     FINAL_FOS = f_flutter(data, fins);
+    sweepAngle =rad2deg(fins.getSweepAngle());
     
     % Entire flight stability margin
     stability_all = data{:,"Stability margin"};
@@ -187,19 +191,20 @@ for i = 1:num_elements
     pass_constraints = (FINAL_FOS > FOS_min) && ...
                        (stb_launchrod > stability_rail) && ...
                        (maxStability < stability_max) && ...
-                       (apogee_m > apogee_lower) && (apogee_m < apogee_upper);
+                       (apogee_m > apogee_lower) && (apogee_m < apogee_upper)&&...
+                       (sweepAngle>minSweepAngle);
 
     % Console feedback: PASS or FAIL + parameter listing + est. time remaining
     if pass_constraints
-        fprintf("Iteration %d of %d => t=%.5f, Ls=%.5f, Lt=%.5f, Lr=%.5f, h=%.5f, noseMass=%.3f => PASS | Time Rem: %s\n", ...
-            i, num_elements, on_t, on_Ls, on_Lt, on_Lr, on_h, on_noseM, estRemStr);
+        fprintf("Iteration %d of %d => t=%.5f, Ls=%.5f, Lt=%.5f, Lr=%.5f, h=%.5f,FoS =%.4f,stabRodMax=%.3f %.3f,sweepAngle=%.3f, noseMass=%.3f => PASS | Time Rem: %s\n", ...
+            i, num_elements, on_t, on_Ls, on_Lt, on_Lr, on_h, FINAL_FOS, stb_launchrod,maxStability,sweepAngle, on_noseM, estRemStr);
         % Keep if it meets all constraints
         results(row_index,:) = [ i, apogee_m, maxStability, stb_launchrod, ...
                                  on_t, on_Ls, on_Lt, on_Lr, on_h, on_noseM, FINAL_FOS];
         row_index = row_index + 1;
     else
-        fprintf("Iteration %d of %d => t=%.5f, Ls=%.5f, Lt=%.5f, Lr=%.5f, h=%.5f, noseMass=%.3f => FAIL | Time Rem: %s\n", ...
-            i, num_elements, on_t, on_Ls, on_Lt, on_Lr, on_h, on_noseM, estRemStr);
+        fprintf("Iteration %d of %d => t=%.5f, Ls=%.5f, Lt=%.5f, Lr=%.5f, h=%.5f,FoS =%.4f,stabRodMax=%.3f %.3f,sweepAngle=%.3f, noseMass=%.3f => FAIL | Time Rem: %s\n", ...
+            i, num_elements, on_t, on_Ls, on_Lt, on_Lr, on_h,FINAL_FOS, stb_launchrod,maxStability,sweepAngle,on_noseM, estRemStr);
     end
     
 end
@@ -294,7 +299,7 @@ fins.setSweepAngle(best_Ls);
 fins.setTipChord(best_Lt);
 fins.setRootChord(best_Lr);
 fins.setHeight(best_h);
-NoseWeight.setMassOverridden(best_noseM);
+NoseWeight.setComponentMass(best_noseM);
 
 % Re-run sim to get time-history data
 sim_best = otis.sims(sim_name);
