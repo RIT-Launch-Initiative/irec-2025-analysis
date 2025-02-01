@@ -135,67 +135,67 @@ tiledlayout("vertical")
 
 
 
-%% apogee vs. launch angle
-%configure
-high_angle = 86;
-low_angle = 82;
-angleStep = 0.1;
-
-%run the sub script
-[launchAngles,maxAltitudes] = angleApogee (angleStep,high_angle,low_angle,simName,turbIntensity,windSpeed,otis_path);
-
-launchAngles = (low_angle:angleStep:high_angle);
-
-% visulization 
-nexttile
-
-% Visualization
-plot(((launchAngles)), maxAltitudes, 'o-', 'MarkerFaceColor', 'b', 'LineWidth', 2);
-xlabel('Launch Angle (°) from vertical');
-ylabel('Maximum Altitude (ft)');
-title(sprintf('Maximum Altitude vs Launch Angle (Wind Speed = 15 mph)'));
-grid on;
-box on;
-axis padded;
-ylim([8750 11250])
-yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-yline(9000, 'r--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-fontsize(16,"points");
-
-%Remove scientific notation from y-axis
-ax = gca;
-ax.YAxis.Exponent = 0;
-ytickformat('%.0f');  % Format y-ticks as whole numbers
-
-%% apogee vs. temperature
-%configure
-temperatures = 27:1:46;
-
-[maxAltitudes] = apogeeTemp(temperatures,simName,turbIntensity,windSpeed,otis_path);
-
-maxAltitudes = maxAltitudes*3.28084;
-
-% Visualization
-nexttile
-plot(temperatures, maxAltitudes, 'o-', 'MarkerFaceColor', 'b', 'LineWidth', 2);
-xlabel('Temperature (°C)');
-ylabel('Maximum Altitude (ft)');
-axis padded;
-title(sprintf('Maximum Altitude vs Launch Temperature (Wind Speed = 15 mph)'));
-grid on;
-box on;
-hold on;
-ylim([8750 11250])
-yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-yline(9000, 'r--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-
-fontsize(16,"points")
-
-% Remove scientific notation from y-axis
-ax = gca;
-ax.YAxis.Exponent = 0;
-ytickformat('%.0f');  % Format y-ticks as whole numbers
-
-% hold off;
+% %% apogee vs. launch angle
+% %configure
+% high_angle = 86;
+% low_angle = 82;
+% angleStep = 0.1;
+% 
+% %run the sub script
+% [launchAngles,maxAltitudes] = angleApogee (angleStep,high_angle,low_angle,simName,turbIntensity,windSpeed,otis_path);
+% 
+% launchAngles = (low_angle:angleStep:high_angle);
+% 
+% % visulization 
+% nexttile
+% 
+% % Visualization
+% plot(((launchAngles)), maxAltitudes, 'o-', 'MarkerFaceColor', 'b', 'LineWidth', 2);
+% xlabel('Launch Angle (°) from vertical');
+% ylabel('Maximum Altitude (ft)');
+% title(sprintf('Maximum Altitude vs Launch Angle (Wind Speed = 15 mph)'));
+% grid on;
+% box on;
+% axis padded;
+% ylim([8750 11250])
+% yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+% yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+% yline(9000, 'r--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+% fontsize(16,"points");
+% 
+% %Remove scientific notation from y-axis
+% ax = gca;
+% ax.YAxis.Exponent = 0;
+% ytickformat('%.0f');  % Format y-ticks as whole numbers
+% 
+% %% apogee vs. temperature
+% %configure
+% temperatures = 27:1:46;
+% 
+% [maxAltitudes] = apogeeTemp(temperatures,simName,turbIntensity,windSpeed,otis_path);
+% 
+% maxAltitudes = maxAltitudes*3.28084;
+% 
+% % Visualization
+% nexttile
+% plot(temperatures, maxAltitudes, 'o-', 'MarkerFaceColor', 'b', 'LineWidth', 2);
+% xlabel('Temperature (°C)');
+% ylabel('Maximum Altitude (ft)');
+% axis padded;
+% title(sprintf('Maximum Altitude vs Launch Temperature (Wind Speed = 15 mph)'));
+% grid on;
+% box on;
+% hold on;
+% ylim([8750 11250])
+% yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+% yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+% yline(9000, 'r--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+% 
+% fontsize(16,"points")
+% 
+% % Remove scientific notation from y-axis
+% ax = gca;
+% ax.YAxis.Exponent = 0;
+% ytickformat('%.0f');  % Format y-ticks as whole numbers
+% 
+% % hold off;
