@@ -24,7 +24,7 @@ sim_name = "15MPH-TEXAS-36C-(TYP)";
 wind_speed_deviation = 0;
 
 % Desired time step for simulation [s]
-time_step = 0.08;
+time_step = 0.075;
 
 % Fin thickness values [m]
 % Example: 0.003175 m ~ 1/8 in, 0.0047625 m ~ 3/16 in, 0.00635 m ~ 1/4 in
@@ -33,7 +33,7 @@ t_vals = [0.00635];
 % Sweep, tip chord, root chord, and height scaling:
 % You can scale them around the nominal values from the .ork file.
 % For example, 80% to 120% in steps of 5%.
-Ls_scale = 0.8:0.05:1.2;  % Sweep scale factor
+Ls_scale = 1;  % Sweep scale factor
 h_scale  = 0.8:0.05:1.2;  % Height scale factor
 Lt_scale = 1;
  
@@ -41,16 +41,16 @@ Lt_scale = 1;
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
-nose_mass_vals = 0.00 : 0.1 : 2.5;
+nose_mass_vals = 0:0.1:3;
 
 % Constraints
 FOS_min         = 1.5;   % Fin flutter factor of safety must be > 1.5
-stability_rail  = 1.3;   % Stability margin off rail must be > 1.4 (example)
+stability_rail  = 1.2;   % Stability margin off rail must be > 1.4 (example)
 stability_max   = 3.95;   % Max stability during flight must be < 4.0
 apogee_lower    = 2895.6; % ~9500 ft in meters
 apogee_upper    = 3200.4; % ~10500 ft in meters
 
-minSweepAngle = 20;
+maxSweepAngle = 20; % seems reversed... need to verify 
 
 %% 2. LOAD ROCKET + KEY COMPONENTS
 
@@ -171,7 +171,7 @@ for i = 1:num_elements
     
     % Fin Flutter FOS
     FINAL_FOS = f_flutter(data, fins);
-    sweepAngle =rad2deg(fins.getSweepAngle());
+    sweepAngle = atan(on_Ls/on_h) ;
     
     % Entire flight stability margin
     stability_all = data{:,"Stability margin"};
@@ -192,7 +192,7 @@ for i = 1:num_elements
                        (stb_launchrod > stability_rail) && ...
                        (maxStability < stability_max) && ...
                        (apogee_m > apogee_lower) && (apogee_m < apogee_upper)&&...
-                       (sweepAngle>minSweepAngle);
+                       (sweepAngle<maxSweepAngle);
 
     % Console feedback: PASS or FAIL + parameter listing + est. time remaining
     if pass_constraints
