@@ -16,6 +16,7 @@ clear; close all;
 
 % Path to your metric .ork file
 ork_file_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+addpath(genpath("C:\lmatlib\sim"));
 
 % Name of the OpenRocket simulation to run
 sim_name = "15MPH-TEXAS-36C-(TYP)";
@@ -33,24 +34,23 @@ t_vals = [0.00635];
 % Sweep, tip chord, root chord, and height scaling:
 % You can scale them around the nominal values from the .ork file.
 % For example, 80% to 120% in steps of 5%.
-Ls_scale = 1;  % Sweep scale factor
-h_scale  = 0.8:0.05:1.2;  % Height scale factor
+Ls_scale = 0.8:0.05:1.2;  % Sweep scale factor
+h_scale  = 1;  % Height scale factor
 Lt_scale = 1;
  
 % For tip chord (Lt) and root chord (Lr), keep them fixed at 100%.
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
-nose_mass_vals = 0:0.1:3;
+nose_mass_vals = 0:0.1:2;
 
 % Constraints
 FOS_min         = 1.5;   % Fin flutter factor of safety must be > 1.5
-stability_rail  = 1.2;   % Stability margin off rail must be > 1.4 (example)
-stability_max   = 3.95;   % Max stability during flight must be < 4.0
+stability_rail  = 1.4;   % Stability margin off rail must be > 1.4 (example)
+stability_max   = 3.90;   % Max stability during flight must be < 4.0
 apogee_lower    = 2895.6; % ~9500 ft in meters
 apogee_upper    = 3200.4; % ~10500 ft in meters
-
-maxSweepAngle = 20; % seems reversed... need to verify 
+minSweepAngle = 20; % 
 
 %% 2. LOAD ROCKET + KEY COMPONENTS
 
@@ -171,7 +171,8 @@ for i = 1:num_elements
     
     % Fin Flutter FOS
     FINAL_FOS = f_flutter(data, fins);
-    sweepAngle = atan(on_Ls/on_h) ;
+    sweepAngle = atan(on_Ls/on_h);
+    sweepAngle = rad2deg(sweepAngle);
     
     % Entire flight stability margin
     stability_all = data{:,"Stability margin"};
@@ -192,7 +193,7 @@ for i = 1:num_elements
                        (stb_launchrod > stability_rail) && ...
                        (maxStability < stability_max) && ...
                        (apogee_m > apogee_lower) && (apogee_m < apogee_upper)&&...
-                       (sweepAngle<maxSweepAngle);
+                       (sweepAngle>minSweepAngle);
 
     % Console feedback: PASS or FAIL + parameter listing + est. time remaining
     if pass_constraints
@@ -295,7 +296,7 @@ best_noseM = best_design(10);
 
 % Update the rocket to the best design
 fins.setThickness(best_t);
-fins.setSweepAngle(best_Ls);
+fins.setSweep(best_Ls);
 fins.setTipChord(best_Lt);
 fins.setRootChord(best_Lr);
 fins.setHeight(best_h);
@@ -317,3 +318,239 @@ grid on;
 xlabel('Time [s]');
 ylabel('Stability Margin [cal]');
 title('Best Design: Stability vs. Time');
+
+%% (After your current plots, add the following sections)
+
+% Create a table for easier plotting and labeling
+resultsTable = array2table(results, 'VariableNames', titles);
+% Note: titles = {'Iter#','Apogee(m)','MaxStab','Stab@Rail',...
+%                    't(m)','Ls(m)','Lt(m)','Lr(m)','h(m)',...
+%                    'NoseMass(kg)','FOS'};
+
+%% A. Scatter-Matrix Plot for Design Parameters & Performance Metrics
+% This plot shows pairwise relationships between key design variables and performance metrics.
+figure('Name','Scatter Matrix: Design vs. Performance','Color','w');
+varsToPlot = {'t(m)', 'Ls(m)', 'Lt(m)', 'Lr(m)', 'h(m)', 'NoseMass(kg)', 'Apogee(m)', 'MaxStab', 'Stab@Rail', 'FOS'};
+plotmatrix(resultsTable{:,varsToPlot});
+sgtitle('Scatter Matrix of Design Variables & Performance Metrics');
+
+%% B. 3D Scatter Plot Highlighting the Best Design
+% For example, plot Nose Mass vs. Apogee vs. Max Stability.
+figure('Name','3D Scatter: NoseMass vs Apogee vs MaxStability','Color','w');
+scatter3(results(:,10), results(:,2), results(:,3), 50, results(:,11), 'filled'); hold on;
+scatter3(best_design(10), best_design(2), best_design(3), 120, 'rp', 'filled');  % best design marker
+xlabel('NoseMass (kg)');
+ylabel('Apogee (m)');
+zlabel('Max Stability');
+cb = colorbar;
+cb.Label.String = 'Fin Flutter FOS';
+title('3D Scatter Plot: Performance Metrics with Best Design Highlighted');
+grid on;
+
+%% C. Parallel Coordinates Plot to Visualize Multi-dimensional Data
+% This plot allows you to see how each candidate (each row) behaves across all metrics.
+% To emphasize the best design, we create a grouping variable.
+isBest = resultsTable.("Iter#") == best_design(1);  % true for best design, false otherwise
+group = repmat("Other", height(resultsTable), 1);
+group(isBest) = "Best";
+% Use the parallelcoords function (requires Statistics Toolbox)
+figure('Name','Parallel Coordinates Plot','Color','w');
+% Choose the columns of interest: design variables and key performance metrics.
+colsForParallel = {'t(m)', 'Ls(m)', 'Lt(m)', 'Lr(m)', 'h(m)', 'NoseMass(kg)', 'Apogee(m)', 'MaxStab', 'Stab@Rail', 'FOS'};
+parallelcoords(resultsTable{:,colsForParallel}, 'Group', group, ...
+    'Standardize', 'on', 'Labels', colsForParallel);
+title('Parallel Coordinates Plot (Best Design Highlighted)');
+legend('Other Designs','Best Design');
+
+%% D. Interactive Visualization (Optional)
+% If you have MATLAB R2018b or later, you can use the scatter3 with data tips or the brush tool.
+% For example, you might create an interactive 3D scatter plot:
+figure('Name','Interactive 3D Scatter','Color','w');
+hScatter = scatter3(results(:,10), results(:,2), results(:,3), 50, results(:,11), 'filled');
+xlabel('NoseMass (kg)');
+ylabel('Apogee (m)');
+zlabel('Max Stability');
+title('Interactive 3D Scatter Plot');
+colorbar;
+grid on;
+% Enable data cursor mode to click on points and see their design parameters.
+datacursormode on;
+
+
+%% NEW VISUALIZATION: Parameter Sweeps (Nose Mass vs Fin Sweep) and Performance Metrics
+
+% Extract candidate design data from results matrix:
+% Column indices:
+%   2 -> Apogee (m)
+%   3 -> Max Stability
+%   4 -> Stability @ Rail
+%   6 -> Fin Sweep (Ls, in m)
+%   10 -> Nose Mass (kg)
+%   11 -> Fin Flutter FOS
+
+noseMass_data = results(:,10);
+Ls_data       = results(:,6);
+
+% Define a grid for interpolation
+numGridPts = 50; % Adjust as needed for smoothness
+xi = linspace(min(noseMass_data), max(noseMass_data), numGridPts);
+yi = linspace(min(Ls_data), max(Ls_data), numGridPts);
+[XI, YI] = meshgrid(xi, yi);
+
+% Interpolate performance metrics onto the grid:
+ZI_apogee   = griddata(noseMass_data, Ls_data, results(:,2), XI, YI, 'linear');
+ZI_FOS      = griddata(noseMass_data, Ls_data, results(:,11), XI, YI, 'linear');
+ZI_stabRail = griddata(noseMass_data, Ls_data, results(:,4), XI, YI, 'linear');
+ZI_maxStab  = griddata(noseMass_data, Ls_data, results(:,3), XI, YI, 'linear');
+
+figure('Name','Parameter Sweeps: Performance vs. Nose Mass & Fin Sweep','Color','w');
+set(gcf,'Position',[100 100 1200 800]);
+
+% (a) Apogee vs. Nose Mass & Fin Sweep
+subplot(2,2,1);
+contourf(XI, YI, ZI_apogee, 20, 'LineColor', 'none');
+colorbar;
+hold on;
+plot(best_design(10), best_design(6), 'r*', 'MarkerSize', 12, 'LineWidth', 2);
+xlabel('Nose Mass (kg)');
+ylabel('Fin Sweep (m)');
+title('Apogee (m)');
+grid on;
+
+% (b) Fin Flutter FOS vs. Nose Mass & Fin Sweep
+subplot(2,2,2);
+contourf(XI, YI, ZI_FOS, 20, 'LineColor', 'none');
+colorbar;
+hold on;
+plot(best_design(10), best_design(6), 'r*', 'MarkerSize', 12, 'LineWidth', 2);
+xlabel('Nose Mass (kg)');
+ylabel('Fin Sweep (m)');
+title('Fin Flutter FOS');
+grid on;
+
+% (c) Stability @ Rail vs. Nose Mass & Fin Sweep
+subplot(2,2,3);
+contourf(XI, YI, ZI_stabRail, 20, 'LineColor', 'none');
+colorbar;
+hold on;
+plot(best_design(10), best_design(6), 'r*', 'MarkerSize', 12, 'LineWidth', 2);
+xlabel('Nose Mass (kg)');
+ylabel('Fin Sweep (m)');
+title('Stability @ Rail');
+grid on;
+
+% (d) Maximum Stability vs. Nose Mass & Fin Sweep
+subplot(2,2,4);
+contourf(XI, YI, ZI_maxStab, 20, 'LineColor', 'none');
+colorbar;
+hold on;
+plot(best_design(10), best_design(6), 'r*', 'MarkerSize', 12, 'LineWidth', 2);
+xlabel('Nose Mass (kg)');
+ylabel('Fin Sweep (m)');
+title('Max Stability');
+grid on;
+
+sgtitle('Performance Metrics as a Function of Nose Mass and Fin Sweep');
+
+%% NEW VISUALIZATION: 3D Multi-dimensional Plot Combining Design & Performance Metrics
+
+% Extract key variables from the results matrix
+% Columns in results are:
+% 2) Apogee (m)
+% 3) Max Stability
+% 4) Stability @ Rail
+% 6) Fin Sweep (Ls, m)
+% 10) Nose Mass (kg)
+% 11) Fin Flutter FOS
+
+noseMass = results(:,10);  % Nose Mass (kg)
+finSweep = results(:,6);   % Fin Sweep (m)
+apogee   = results(:,2);   % Apogee (m)
+FOS      = results(:,11);  % Fin Flutter FOS
+maxStab  = results(:,3);   % Maximum Stability
+
+% Scale the marker sizes based on max stability (for example, between 10 and 100)
+msizes = 10 + 90 * (maxStab - min(maxStab)) / (max(maxStab) - min(maxStab));
+
+% Create the 3D scatter plot
+figure('Name','3D Multi-dimensional Plot','Color','w');
+scatter3(noseMass, finSweep, apogee, msizes, FOS, 'filled');
+xlabel('Nose Mass (kg)', 'FontSize',12);
+ylabel('Fin Sweep (m)', 'FontSize',12);
+zlabel('Apogee (m)', 'FontSize',12);
+title('3D Multi-dimensional Plot: Design & Performance Metrics', 'FontSize',14);
+colorbar;
+colormap(jet);
+grid on;
+hold on;
+
+% Highlight the best design with a distinctive marker (e.g., a large pentagram)
+scatter3(best_design(10), best_design(6), best_design(2), 150, best_design(11), 'p', 'filled', 'MarkerEdgeColor', 'k');
+
+legend('Candidate Designs','Best Design','Location','best');
+
+
+%% Multi-Plot: Stability vs Time for Different Winner Designs
+
+% Determine winners among valid designs:
+% Winner 1: Best design by minimal nose mass (already computed)
+winner_lowNose = best_design;
+
+% Winner 2: Design with highest Fin Flutter FOS (column 11)
+[~, idx_maxFOS] = max(results(:,11));
+winner_maxFOS = results(idx_maxFOS,:);
+
+% Winner 3: Design with highest Apogee (column 2)
+[~, idx_maxApo] = max(results(:,2));
+winner_maxApo = results(idx_maxApo,:);
+
+% Create cell arrays for convenience
+winners = {winner_lowNose, winner_maxFOS, winner_maxApo};
+winnerNames = {'Lowest Nose Mass','Highest Fin Flutter FOS','Highest Apogee'};
+
+% Create a new figure for the multi-plot
+figure('Name','Stability vs Time for Different Winner Designs','Color','w');
+hold on;
+colors = lines(numel(winners));  % Use a colormap with distinct colors
+
+for j = 1:length(winners)
+    design = winners{j};
+    
+    % Update rocket design parameters for the j-th candidate:
+    % Columns: 5=t, 6=Ls, 7=Lt, 8=Lr, 9=h, 10=nose mass
+    fins.setThickness(design(5));
+    fins.setSweepAngle(design(6));
+    fins.setTipChord(design(7));
+    fins.setRootChord(design(8));
+    fins.setHeight(design(9));
+    NoseWeight.setComponentMass(design(10));
+    
+    % Re-run the simulation for this design:
+    sim_winner = otis.sims(sim_name);
+    opts_winner = sim_winner.getOptions;
+    opts_winner.setWindSpeedDeviation(wind_speed_deviation);
+    opts_winner.setTimeStep(time_step);
+    openrocket.simulate(sim_winner);
+    data_winner = openrocket.get_data(sim_winner);
+    
+    % Extract time and Stability margin from the simulation data:
+    time_vec = data_winner.Time;
+    stab_margin = data_winner{:,"Stability margin"};
+    
+    % Extract the apogee (assumes your eventfilter("APOGEE") works as in the main loop)
+    apogee_val = data_winner{eventfilter("APOGEE"), "Altitude"};
+    
+    % Create a custom legend text that includes the apogee value:
+    legendText = sprintf('%s (Apogee: %.1f m)', winnerNames{j}, apogee_val);
+    
+    % Plot the Stability margin vs Time with the custom legend entry:
+    plot(time_vec, stab_margin, 'LineWidth', 2, ...
+         'Color', colors(j,:), 'DisplayName', legendText);
+end
+
+xlabel('Time [s]');
+ylabel('Stability Margin');
+title('Stability vs Time for Different Winner Designs');
+legend('Location','best');
+grid on;
+hold off;
