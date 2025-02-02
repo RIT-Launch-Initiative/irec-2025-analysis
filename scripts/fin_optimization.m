@@ -35,18 +35,18 @@ t_vals = [0.00635];
 % For demonstration, these are left at 1 (no scaling).
 Ls_scale = 0.8:0.05:1.2;
 h_scale  = 0.8:0.05:1.2;
-Lt_scale = 1;
+Lt_scale = 0.8:0.05:1.2;
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
-nose_mass_vals = 0:0.05:2;
+nose_mass_vals = 0:0.1:3;
 
 % Constraints (values remain in metric for simulation purposes)
 FOS_min         = 1.5;    % Fin flutter factor of safety must be > 1.5
 stability_rail  = 1.4;    % Stability margin off rail must be > 1.4 (example)
 stability_max   = 3.85;   % Max stability during flight must be < 4.0
-apogee_lower    = 2895.6; % ~9500 ft in meters
-apogee_upper    = 3200.4; % ~10500 ft in meters
+apogee_lower    = 2795.6; % ~9500 ft in meters
+apogee_upper    = 3100.4; % ~10500 ft in meters
 minSweepAngle   = 20;     % Minimum sweep angle in degrees
 
 %% 2. LOAD ROCKET + KEY COMPONENTS
