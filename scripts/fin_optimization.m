@@ -24,7 +24,7 @@ sim_name = "15MPH-TEXAS-36C-(TYP)";
 wind_speed_deviation = 0;
 
 % Desired time step for simulation [s]
-time_step = 0.03;
+time_step = 0.05;
 
 % Fin thickness values [m]
 % Example: 0.003175 m ~ 1/8 in, 0.0047625 m ~ 3/16 in, 0.00635 m ~ 1/4 in
@@ -33,22 +33,22 @@ t_vals = [0.00635];
 % Sweep, tip chord, root chord, and height scaling:
 % You can scale them around the nominal values from the .ork file.
 % For example, 80% to 120% in steps of 5%.
-Ls_scale = 0.7:0.05:1.3;% Sweep scale factor
-h_scale  = 0.7:0.05:1.3;% Height scale factor
-Lt_scale = 0.7:0.05:1.3;
+Ls_scale = 0.9:0.03:1.1;% Sweep scale factor
+h_scale  = 0.9:0.02:1.1;% Height scale factor
+Lt_scale = 0.9:0.02:1.1;
  
 % For tip chord (Lt) and root chord (Lr), keep them fixed at 100%.
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
-nose_mass_vals = 0:0.1:0.5;
+nose_mass_vals = 0:0.05:0.5;
 
 % Constraints (values remain in metric for simulation purposes)
 FOS_min         = 1.5;   % Fin flutter factor of safety must be > 1.5
 stability_rail  = 1.4;   % Stability margin off rail must be > 1.4 (example)
-stability_max   = 3.90;  % Max stability during flight must be < 4.0
-apogee_lower    = 2895.6;% ~9500 ft in meters
-apogee_upper    = 3200.4;% ~10500 ft in meters
+stability_max   = 3.85;  % Max stability during flight must be < 4.0
+apogee_lower    = 2971.8;% ~9750 ft in meters
+apogee_upper    = 3124.2;% ~10250 ft in meters
 minSweepAngle   = 20;    % Minimum sweep angle in degrees
 
 %% 2. LOAD ROCKET + KEY COMPONENTS
@@ -187,7 +187,7 @@ for i = 1:num_elements
     % Stability off the launch rail (first sample after LAUNCHROD)
     data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("BURNOUT"), "openleft");
     data_trim = data(data_range, :);
-    if isempty(data_trim)
+     if isempty(data_trim)
         % fallback if no data in that range
         stb_launchrod = stability_all(1);
     else
