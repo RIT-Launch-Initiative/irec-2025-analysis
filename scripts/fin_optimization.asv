@@ -1,11 +1,10 @@
-%% FIN + NOSE WEIGHT OPTIMIZATION
+%% FIN + NOSE WEIGHT OPTIMIZATION (MKS → Imperial Display)
 %  Created by Ares Bustinza-Nguyen
-%  Updated: 2/2/25,
+%  Updated: 2/2/25, 
 %
 %  This script brute-forces a range of fin geometries & nose weights,
-%  re-simulates in OpenRocket, and checks constraints.
-%  The "best" design is the one that meets constraints and is closest to a 
-%  specified target apogee (by default 3086 m ~ 10125 ft).
+%  re-simulates in OpenRocket, and checks constraints. 
+%  The "best" design is now the one that meets constraints and is closest to 10k feet.
 
 clear; close all;
 
@@ -28,29 +27,25 @@ wind_speed_deviation = 0;
 % Desired time step for simulation [s]
 time_step = 0.05;
 
-
-
 % Fin thickness values [m]
 % Example: 0.003175 m ~ 1/8 in, 0.0047625 m ~ 3/16 in, 0.00635 m ~ 1/4 in
-t_vals = [0.0047625, 0.00635];
+t_vals = [0.00635];
 
 % Sweep, tip chord, root chord, and height scaling:
 % For demonstration, these are left at 1 (no scaling).
-Ls_scale = 0.8:0.05:1.2;
-h_scale  = 0.8:0.05:1.2;
-Lt_scale = 0.8:0.05:1.2;
+Ls_scale = 1;
+h_scale  = 1;
+Lt_scale = 1;
 Lr_scale = 1.0;
-
-% Range of nose cone adjustable weight [kg]
-nose_mass_vals = 1:0.25:3;
+nM_scale = 0.8:0.05:1.2;
 
 % Constraints (values remain in metric for simulation purposes)
 FOS_min         = 1.5;    % Fin flutter factor of safety must be > 1.5
-stability_rail  = 1.35;    % Stability margin off rail must be > 1.4 (example)
-stability_max   = 3.92;   % Max stability during flight must be < 4.0
-apogee_lower    = 2980;   % Example lower bound near target_apogee
-target_apogee = 3086;% Target apogee you want to get close to [m], 10150
-apogee_upper    = 3280;   % Example upper bound near target_apogee
+stability_rail  = 1.4;    % Stability margin off rail must be > 1.4 (example)
+stability_max   = 3.85;   % Max stability during flight must be < 4.0
+apogee_lower    = 2795.6; % ~9500 ft in meters
+target_apoge
+apogee_upper    = 3100.4; % ~10500 ft in meters
 minSweepAngle   = 20;     % Minimum sweep angle in degrees
 
 %% 2. LOAD ROCKET + KEY COMPONENTS
@@ -85,7 +80,7 @@ Ls_nom = fins.getSweep();      % nominal sweep (m)
 Lt_nom = fins.getTipChord();   % nominal tip chord (m)
 Lr_nom = fins.getRootChord();  % nominal root chord (m)
 h_nom  = fins.getHeight();     % nominal fin height (m)
-
+nM_nom = NoseWeight.getComponentMass();
 
 %% 3. SET UP THE ND-GRID (ALL CANDIDATE DESIGNS)
 
@@ -94,9 +89,10 @@ Ls_vals = Ls_nom * Ls_scale;
 Lt_vals = Lt_nom * Lt_scale;
 Lr_vals = Lr_nom * Lr_scale;
 h_vals  = h_nom  * h_scale;
+nM_vals = nM_nom * nM_scale;
 
 [t_g, Ls_g, Lt_g, Lr_g, h_g, nose_g] = ndgrid( ...
-    t_vals, Ls_vals, Lt_vals, Lr_vals, h_vals, nose_mass_vals);
+    t_vals, Ls_vals, Lt_vals, Lr_vals, h_vals, nM_vals);
 
 num_elements = numel(t_g);
 fprintf("Total # of candidate designs: %d\n", num_elements);
@@ -117,7 +113,7 @@ fprintf("Total # of candidate designs: %d\n", num_elements);
 %   11) fin flutter FOS
 results = NaN(num_elements, 11);
 
-% If you have a custom flutter function, define/replace here:
+% If you have a custom flutter function, define or replace here:
 f_flutter = @FOS_finflutter;
 
 row_index = 1;
@@ -129,15 +125,15 @@ for i = 1:num_elements
 
     % Estimate time remaining:
     if i > 1
-        elapsedTime = toc;
+        elapsedTime = toc;                  
         avgTimePerIter = elapsedTime / (i-1);
         remainingIters = num_elements - i + 1;
         estRemSec = avgTimePerIter * remainingIters;
         estRemStr = datestr(seconds(estRemSec), 'HH:MM:SS');
     else
-        estRemStr = "N/A";
+        estRemStr = "N/A";  
     end
-
+    
     % Extract geometry & nose mass from the grid (in metric)
     on_t     = t_g(i);
     on_Ls    = Ls_g(i);
@@ -145,49 +141,50 @@ for i = 1:num_elements
     on_Lr    = Lr_g(i);
     on_h     = h_g(i);
     on_noseM = nose_g(i);
-
+    
     % Convert key dimensions to inches for console output
     on_t_in  = on_t  * m2in;
     on_Ls_in = on_Ls * m2in;
     on_Lt_in = on_Lt * m2in;
     on_Lr_in = on_Lr * m2in;
     on_h_in  = on_h  * m2in;
-
+    
     % Update fin geometry in the rocket
-    fins.setThickness(on_t);
+    fins.setThickness(on_t); 
     fins.setSweep(on_Ls);
     fins.setTipChord(on_Lt);
     fins.setRootChord(on_Lr);
     fins.setHeight(on_h);
-
+    
     % Update nose weight
     NoseWeight.setComponentMass(on_noseM);
-
+    
     % Rerun the simulation with updated geometry & nose mass
+    otis.save();  % Optionally save the .ork after each iteration (can be expensive)
     sim = otis.sims(sim_name);
     opts = sim.getOptions;
     opts.setWindSpeedDeviation(wind_speed_deviation);
     opts.setTimeStep(time_step);
-
+    
     openrocket.simulate(sim);
     data = openrocket.get_data(sim);
 
     % -------- EXTRACT PERFORMANCE METRICS --------
-
-    % Apogee [m] → we will convert to ft for console reporting
+    
+    % Apogee [m] → we will convert to ft for reporting
     apogee_m = data{eventfilter("APOGEE"), "Altitude"};
     apogee_ft = apogee_m * m2ft;
-
+    
     % Fin Flutter FOS
     FINAL_FOS = f_flutter(data, fins);
-
+    
     % Sweep angle in degrees (for constraint checking)
     sweepAngle = rad2deg( atan(on_Ls / on_h) );
-
+    
     % Entire flight stability margin
     stability_all = data{:,"Stability margin"};
     maxStability  = max(stability_all);
-
+    
     % Stability off the launch rail (first sample after LAUNCHROD)
     data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("BURNOUT"), "openleft");
     data_trim = data(data_range, :);
@@ -210,7 +207,7 @@ for i = 1:num_elements
         fprintf("Iteration %d of %d => t=%.5f in, Ls=%.5f in, Lt=%.5f in, Lr=%.5f in, h=%.5f in, Apogee=%.1f ft, FoS=%.4f, stabRod=%.3f, maxStab=%.3f, sweepAngle=%.3f°, noseMass=%.3f kg => PASS | Time Rem: %s\n", ...
             i, num_elements, on_t_in, on_Ls_in, on_Lt_in, on_Lr_in, on_h_in, ...
             apogee_ft, FINAL_FOS, stb_launchrod, maxStability, sweepAngle, on_noseM, estRemStr);
-
+        
         % Keep if it meets all constraints
         results(row_index,:) = [ i, apogee_m, maxStability, stb_launchrod, ...
                                  on_t, on_Ls, on_Lt, on_Lr, on_h, on_noseM, FINAL_FOS];
@@ -220,10 +217,10 @@ for i = 1:num_elements
             i, num_elements, on_t_in, on_Ls_in, on_Lt_in, on_Lr_in, on_h_in, ...
             apogee_ft, FINAL_FOS, stb_launchrod, maxStability, sweepAngle, on_noseM, estRemStr);
     end
-
+    
 end
 
-%% 6. TRIM RESULTS & FIND THE "BEST" DESIGN (APOGEE CLOSEST TO target_apogee)
+%% 6. TRIM RESULTS & FIND THE "BEST" DESIGN (APOGEE CLOSEST TO 10,000 ft)
 
 % Remove unfilled rows
 results = results(~any(isnan(results),2), :);
@@ -233,8 +230,8 @@ if isempty(results)
     return
 end
 
-% Find the design whose apogee is closest to our target_apogee
-[~, idx_closestApogee] = min(abs(results(:,2) - target_apogee));
+% Find the design with apogee closest to 10,000 ft (3048 m)
+[~, idx_closestApogee] = min(abs(results(:,2) - 3048));
 best_design = results(idx_closestApogee, :);
 
 %% DISPLAY THE WINNER IN THE CONSOLE
@@ -253,7 +250,7 @@ titles = {
 };
 
 disp(" ");
-disp("BEST DESIGN (Apogee closest to target_apogee):");
+disp("BEST DESIGN (Apogee closest to 10,000 ft):");
 disp(array2table(best_design .* conv_factors, 'VariableNames', titles));
 
 %% 7. DISPLAY ALL VALID RESULTS
@@ -299,33 +296,33 @@ best_FOS      = best_design(11);
 % (a) Apogee vs NoseMass
 subplot(2,2,1);
 scatter(results(:,10), results(:,2)*m2ft, 30, 'b','filled'); hold on;
-scatter(best_noseM, best_apogee_ft, 120, 'rp', 'filled');
+scatter(best_noseM, best_apogee_ft, 120, 'rp', 'filled'); 
 xlabel('Nose Mass [kg]'); ylabel('Apogee [ft]');
 title('Apogee vs Nose Mass'); grid on;
 
 % (b) Stability off Rail vs NoseMass
 subplot(2,2,2);
 scatter(results(:,10), results(:,4), 30, 'r','filled'); hold on;
-scatter(best_noseM, best_stabRail, 120, 'kp', 'filled');
+scatter(best_noseM, best_stabRail, 120, 'kp', 'filled'); 
 xlabel('Nose Mass [kg]'); ylabel('Stability @ Rail');
 title('Stability @ Rail vs Nose Mass'); grid on;
 
 % (c) Max Stability vs Apogee
 subplot(2,2,3);
 scatter(results(:,2)*m2ft, results(:,3), 30, 'g','filled'); hold on;
-scatter(best_apogee_ft, best_maxStab, 120, 'mp', 'filled');
+scatter(best_apogee_ft, best_maxStab, 120, 'mp', 'filled'); 
 xlabel('Apogee [ft]'); ylabel('Max Stability');
 title('Max Stability vs Apogee'); grid on;
 
 % (d) FOS vs NoseMass
 subplot(2,2,4);
 scatter(results(:,10), results(:,11), 30, 'k','filled'); hold on;
-scatter(best_noseM, best_FOS, 120, 'gp', 'filled');
+scatter(best_noseM, best_FOS, 120, 'gp', 'filled'); 
 xlabel('Nose Mass [kg]'); ylabel('Fin Flutter FOS');
 title('FOS vs Nose Mass'); grid on;
 
 %% 9. RE-RUN THE BEST DESIGN AND PLOT STABILITY VS TIME
-% Set rocket to best-design geometry & save
+% Set rocket to best-design geometry (closest to 10k ft) & save
 
 best_t     = best_design(5);
 best_Ls    = best_design(6);
@@ -359,7 +356,8 @@ plot(data_best.Time, data_best{:,"Stability margin"}, 'LineWidth',2);
 grid on;
 xlabel('Time [s]');
 ylabel('Stability Margin');
-title('Best Design (Closest to Target Apogee): Stability vs. Time');
+title('Best Design (Closest to 10,000 ft): Stability vs. Time');
 
 % Create a table for easier plotting and labeling
 resultsTable = array2table(results_table, 'VariableNames', titles);
+

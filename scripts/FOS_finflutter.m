@@ -7,7 +7,7 @@ function [FINAL_FOS] = FOS_finflutter(data, fins)
     end
 
     t = fins.getThickness();
-    Ls = fins.getSweepAngle();
+    Ls = fins.getSweep();
     Lt = fins.getTipChord();
     Lr = fins.getRootChord();
     h = fins.getHeight();
