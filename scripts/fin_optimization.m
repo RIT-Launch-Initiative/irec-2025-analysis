@@ -36,9 +36,9 @@ t_vals = [0.0047625, 0.00635];
 
 % Sweep, tip chord, root chord, and height scaling:
 % For demonstration, these are left at 1 (no scaling).
-Ls_scale = 0.8:0.05:1.2;
-h_scale  = 0.8:0.05:1.2;
-Lt_scale = 0.8:0.05:1.2;
+Ls_scale = 0.9:0.05:1.1;
+h_scale  = 0.9:0.05:1.1;
+Lt_scale = 0.9:0.05:1.1;
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
@@ -46,8 +46,8 @@ nose_mass_vals = 1:0.25:3;
 
 % Constraints (values remain in metric for simulation purposes)
 FOS_min         = 1.5;    % Fin flutter factor of safety must be > 1.5
-stability_rail  = 1.35;    % Stability margin off rail must be > 1.4 (example)
-stability_max   = 3.92;   % Max stability during flight must be < 4.0
+stability_rail  = 1.5;    % Stability margin off rail must be > 1.4 (example)
+stability_max   = 3.95;   % Max stability during flight must be < 4.0
 apogee_lower    = 2980;   % Example lower bound near target_apogee
 target_apogee = 3086;% Target apogee you want to get close to [m], 10150
 apogee_upper    = 3280;   % Example upper bound near target_apogee
