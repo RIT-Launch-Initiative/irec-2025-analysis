@@ -16,7 +16,6 @@ nSims = 1000; % change this to increase number of iterations. higher is better. 
 turb_spread = 5;
 wind_speed_spread = 10; %m/s
 temp_spread = 20;
-temp = 27; % c
 wind_direction_spread = 45;
 
 %conversion factors
@@ -28,7 +27,7 @@ for i = 1:length(data_out)
     opts.setWindDirection(-opts.getLaunchRodDirection + ...
         deg2rad((rand()-0.5)*wind_angle_spread));
     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
-    opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
+    opts.setLaucn
 
     data_out{i} = openrocket.simulate(sim, outputs = "ALL");
 end
