@@ -28,7 +28,7 @@ wind_direction = 45;
 temp_spread = 20; % c
 temp = opts.getLaunchTemperature;
 wind_direction_spread = 360;
-time_step = 0.03;
+time_step = 0.05;
 
 %conversion factors
 m_sTOmph = 2.237136;
@@ -213,11 +213,18 @@ ax = gca; % axes handle
 ax.XAxis.Exponent = 0;
 
 
-
-
 n = length(data_stabilityOffRod);
-meanData = mean(data_stabilityOffRod);
-stdData = std(data_stabilityOffRod);
+
+mean_stab= mean(data_stabilityOffRod)
+std_w = std(data_stabilityOffRod)
+
+mean_windspeed= mean(data_stabilityOffRod)
+std_windspeed = std(data_stabilityOffRod)
+
+mean_stab= mean(data_stabilityOffRod)
+stdData = std(data_stabilityOffRod)
+
+
 
 alpha = 0.10; % For 90% confidence prediction interval
 t_val = tinv(1 - alpha/2, n - 1); % t critical value for 90% interval

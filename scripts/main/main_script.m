@@ -20,15 +20,14 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 1000; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-turb_spread = 0.05;
+nSims = 2000; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
 wind_speed = 6.7; %m/s
 wind_speed_spread = 5; % m/s
 wind_direction = 45;
 temp_spread = 20; % c
 temp = opts.getLaunchTemperature;
 wind_direction_spread = 360;
-time_step = 0.03;
+time_step = 0.05;
 
 %conversion factors
 m_sTOmph = 2.237136;
@@ -51,7 +50,8 @@ for I = 1:nSims
     % set randomized sim variable
     opts.setLaunchIntoWind(false);
     wind_dir = wind_direction+(rand()-0.5)*wind_direction_spread;
-    opts.setWindDirection(wind_dir);    
+    opts.setWindDirection(wind_dir);  
+    opts.setWindTurbulenceIntensity(0.15)
     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
     opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
     opts.setTimeStep(time_step)
@@ -214,8 +214,20 @@ ax.XAxis.Exponent = 0;
 
 
 n = length(data_stabilityOffRod);
-meanData = mean(data_stabilityOffRod);
-stdData = std(data_stabilityOffRod);
+
+mean_stab= mean(data_stabilityOffRod)
+std_stab = std(data_stabilityOffRod)
+
+mean_windspeed= mean(data_wind_speeds)
+std_windspeed = std(data_wind_speeds)
+
+mean_windDir= mean(data_wind_direciton)
+std_windDir = std(data_wind_direciton)
+
+mean_temp = mean(data_temp)
+std_temp = std(data_temp)
+
+
 
 alpha = 0.10; % For 90% confidence prediction interval
 t_val = tinv(1 - alpha/2, n - 1); % t critical value for 90% interval
