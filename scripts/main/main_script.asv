@@ -20,7 +20,7 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 50; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
 turb_spread = 0.05;
 wind_speed = 6.7; %m/s
 wind_speed_spread = 5; % m/s
@@ -28,6 +28,7 @@ wind_direction = 45;
 temp_spread = 20; % c
 temp = opts.getLaunchTemperature;
 wind_direction_spread = 360;
+time_step = 0.03;
 
 %conversion factors
 m_sTOmph = 2.237136;
@@ -45,15 +46,17 @@ data_time_to_stab = zeros(1,nSims);
 
 
 
-
 for I = 1:nSims
 
     % set randomized sim variable
+    opts.setLaunchIntoWind(false);
     wind_dir = wind_direction+(rand()-0.5)*wind_direction_spread;
     opts.setWindDirection(wind_dir);    
     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
     opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
     opts.setWindTurbulenceIntensity(opts.getWindTurbulenceIntensity+(rand()-0.5)*turb_spread)
+    opts.setTimeStep(time_step)
+        
 
     % run simulation
     data = openrocket.simulate(sim, outputs = "ALL");
@@ -99,75 +102,87 @@ end
 data_apogee = data_apogee*meterTofoot;
 data_temp = data_temp-273.15; % K to C
 
-figure;
-tiledlayout(1,3)
+% %% Visualization 
+% figure;
+% tiledlayout(1,3)
+% 
+% % First tile: Wind Speeds vs. Stability Off Rod
+% nexttile;
+% title("Wind speed vs. Stability off the Rod")
+% scatter(data_wind_speeds(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Speeds(m/s)")
+% ylabel("Stability Off Rod (cal)")
+% plotlables(2);
+% 
+% 
+% % Second tile: Wind Direction vs. Stability Off Rod
+% nexttile;
+% title("Wind direction vs. Stability off the Rod")
+% scatter(data_wind_direciton(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Direction (°)")
+% ylabel("Stability Off Rod (cal)")
+% plotlables(2);
+% 
+% % Third tile: Temperature vs. Stability Off Rod
+% nexttile;
+% 
+% for J = 1:length(data_time_to_stab)
+%     if data_stabilityOffRod(1,J) <= 1.5
+%         scatter(data_time_to_stab(1,J)*1000, data_stabilityOffRod(1,J),36, 'filled', 'MarkerFaceColor', '#F76902')
+%         ylabel("Stability Off Rod (cal)")
+%         ylim([1 2])
+%         ylabel('Stability(cal)'); %xlabel function
+%         yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+%         xlabel('Time to 1.5 cal(ms)')
+% 
+%     end
+% end
+% grid ;
+% grid minor;
+% title("Time to 1.5 cal")
+% 
+% fontsize(16,"points")
+% 
+% 
+% 
+% 
+% figure;
+% 
+% tiledlayout(1,3)
+% 
+% 
+% nexttile;
+% title("Wind speed vs. Apogee")
+% scatter(data_wind_speeds(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Speeds(m/s)")
+% ylabel("Apogee(ft)")
+% ylim([8750 11250])
+% ax = gca; % axes handle
+% ax.YAxis.Exponent = 0;
+% plotlables(1);
+% 
+% nexttile;
+% title("Wind direction(°)vs. Apogee(ft)")
+% scatter(data_wind_direciton(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Direction(°)")
+% ylabel("Apogee(ft)")
+% ylim([8750 11250])
+% ax = gca; % axes handle
+% ax.YAxis.Exponent = 0;
+% plotlables(1);
+% 
+% nexttile;
+% title("Temperature(°C) vs. Apogee(ft)")
+% scatter(data_temp(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Temperature(°C)")
+% ylabel("Apogee(ft)")
+% ylim([8750 11250])
+% ax = gca; % axes handle
+% ax.YAxis.Exponent = 0;
+% plotlables(1);
 
-% First tile: Wind Speeds vs. Stability Off Rod
-nexttile;
-scatter(data_wind_speeds(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Speeds")
-ylabel("Stability Off Rod")
-plotlables(2);
 
-
-% Second tile: Wind Direction vs. Stability Off Rod
-nexttile;
-scatter(data_wind_direciton(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Direction")
-ylabel("Stability Off Rod")
-plotlables(2);
-
-% Third tile: Temperature vs. Stability Off Rod
-nexttile;
-
-for J = 1:length(data_time_to_stab)
-    if data_stabilityOffRod(1,J) <= 1.5
-        scatter(data_time_to_stab(1,J), data_stabilityOffRod(1,J),36, 'filled', 'MarkerFaceColor', '#F76902')
-        ylabel("Stability Off Rod")
-        ylim([1 2])
-        ylabel('Stability (body calibers)'); %xlabel function
-        yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        xlabel('Time to 1.5 cal')
-        grid on;
-        grid minor;
-    end
-end
-
-
-
-
-figure;
-
-tiledlayout(1,3)
-
-
-nexttile;
-scatter(data_wind_speeds(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Speeds")
-ylabel("Apogee")
-ylim([8750 11250])
-ax = gca; % axes handle
-ax.YAxis.Exponent = 0;
-plotlables(1);
-
-nexttile;
-scatter(data_wind_direciton(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Direction")
-ylabel("Apogee")
-ylim([8750 11250])
-ax = gca; % axes handle
-ax.YAxis.Exponent = 0;
-plotlables(1);
-
-nexttile;
-scatter(data_temp(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Temperature")
-ylabel("Apogee")
-ylim([8750 11250])
-ax = gca; % axes handle
-ax.YAxis.Exponent = 0;
-plotlables(1);
-
+fontsize(16,"points")
 
 %% plot funciton
 function plotlables(config)
@@ -181,19 +196,24 @@ function plotlables(config)
         ylabel('Stability (body calibers)'); %xlabel function
         yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
     end
+    grid;
+    grid minor;
 end
 
-figure;
-edges = 1:0.1:2;
-h = histogram(data_stabilityOffRod,edges);
-h.Normalization = 'countdensity';
+tiledlayout(2,1)
+nexttile;
+histogram(data_stabilityOffRod);
+xlabel('Stability off the rod [cal]')
+fontsize(16,"points")
+nexttile;
+histogram(data_apogee);
+xlabel('Apogee [ft]')
+fontsize(16,"points")
+ax = gca; % axes handle
+ax.XAxis.Exponent = 0;
 
-hold on
 
-mu = 5;
-sigma = 2;
-f = exp(-(mu).^2./(2*sigma^2))./(sigma*sqrt(2*pi));
-plot(y,f,'LineWidth',1.5)
+
 
 
 

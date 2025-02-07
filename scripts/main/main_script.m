@@ -20,8 +20,8 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-turb_spread = 0.03;
+nSims = 1000; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+turb_spread = 0.05;
 wind_speed = 6.7; %m/s
 wind_speed_spread = 5; % m/s
 wind_direction = 45;
@@ -102,84 +102,84 @@ end
 data_apogee = data_apogee*meterTofoot;
 data_temp = data_temp-273.15; % K to C
 
-%% Visualization 
-figure;
-tiledlayout(1,3)
-
-% First tile: Wind Speeds vs. Stability Off Rod
-nexttile;
-title("Wind speed vs. Stability off the Rod")
-scatter(data_wind_speeds(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Speeds(m/s)")
-ylabel("Stability Off Rod (cal)")
-plotlables(2);
-
-
-% Second tile: Wind Direction vs. Stability Off Rod
-nexttile;
-title("Wind direction vs. Stability off the Rod")
-scatter(data_wind_direciton(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Direction (°)")
-ylabel("Stability Off Rod (cal)")
-plotlables(2);
-
-% Third tile: Temperature vs. Stability Off Rod
-nexttile;
-
-for J = 1:length(data_time_to_stab)
-    if data_stabilityOffRod(1,J) <= 1.5
-        scatter(data_time_to_stab(1,J)*1000, data_stabilityOffRod(1,J),36, 'filled', 'MarkerFaceColor', '#F76902')
-        ylabel("Stability Off Rod (cal)")
-        ylim([1 2])
-        ylabel('Stability(cal)'); %xlabel function
-        yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        xlabel('Time to 1.5 cal(ms)')
-   
-    end
-end
-grid ;
-grid minor;
-title("Time to 1.5 cal")
-
-fontsize(16,"points")
-
-
-
-
-figure;
-
-tiledlayout(1,3)
-
-
-nexttile;
-title("Wind speed vs. Apogee")
-scatter(data_wind_speeds(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Speeds(m/s)")
-ylabel("Apogee(ft)")
-ylim([8750 11250])
-ax = gca; % axes handle
-ax.YAxis.Exponent = 0;
-plotlables(1);
-
-nexttile;
-title("Wind direction(°)vs. Apogee(ft)")
-scatter(data_wind_direciton(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Wind Direction(°)")
-ylabel("Apogee(ft)")
-ylim([8750 11250])
-ax = gca; % axes handle
-ax.YAxis.Exponent = 0;
-plotlables(1);
-
-nexttile;
-title("Temperature(°C) vs. Apogee(ft)")
-scatter(data_temp(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-xlabel("Temperature(°C)")
-ylabel("Apogee(ft)")
-ylim([8750 11250])
-ax = gca; % axes handle
-ax.YAxis.Exponent = 0;
-plotlables(1);
+% %% Visualization 
+% figure;
+% tiledlayout(1,3)
+% 
+% % First tile: Wind Speeds vs. Stability Off Rod
+% nexttile;
+% title("Wind speed vs. Stability off the Rod")
+% scatter(data_wind_speeds(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Speeds(m/s)")
+% ylabel("Stability Off Rod (cal)")
+% plotlables(2);
+% 
+% 
+% % Second tile: Wind Direction vs. Stability Off Rod
+% nexttile;
+% title("Wind direction vs. Stability off the Rod")
+% scatter(data_wind_direciton(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Direction (°)")
+% ylabel("Stability Off Rod (cal)")
+% plotlables(2);
+% 
+% % Third tile: Temperature vs. Stability Off Rod
+% nexttile;
+% 
+% for J = 1:length(data_time_to_stab)
+%     if data_stabilityOffRod(1,J) <= 1.5
+%         scatter(data_time_to_stab(1,J)*1000, data_stabilityOffRod(1,J),36, 'filled', 'MarkerFaceColor', '#F76902')
+%         ylabel("Stability Off Rod (cal)")
+%         ylim([1 2])
+%         ylabel('Stability(cal)'); %xlabel function
+%         yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+%         xlabel('Time to 1.5 cal(ms)')
+% 
+%     end
+% end
+% grid ;
+% grid minor;
+% title("Time to 1.5 cal")
+% 
+% fontsize(16,"points")
+% 
+% 
+% 
+% 
+% figure;
+% 
+% tiledlayout(1,3)
+% 
+% 
+% nexttile;
+% title("Wind speed vs. Apogee")
+% scatter(data_wind_speeds(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Speeds(m/s)")
+% ylabel("Apogee(ft)")
+% ylim([8750 11250])
+% ax = gca; % axes handle
+% ax.YAxis.Exponent = 0;
+% plotlables(1);
+% 
+% nexttile;
+% title("Wind direction(°)vs. Apogee(ft)")
+% scatter(data_wind_direciton(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Wind Direction(°)")
+% ylabel("Apogee(ft)")
+% ylim([8750 11250])
+% ax = gca; % axes handle
+% ax.YAxis.Exponent = 0;
+% plotlables(1);
+% 
+% nexttile;
+% title("Temperature(°C) vs. Apogee(ft)")
+% scatter(data_temp(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
+% xlabel("Temperature(°C)")
+% ylabel("Apogee(ft)")
+% ylim([8750 11250])
+% ax = gca; % axes handle
+% ax.YAxis.Exponent = 0;
+% plotlables(1);
 
 
 fontsize(16,"points")
@@ -200,10 +200,20 @@ function plotlables(config)
     grid minor;
 end
 
-figure;
-edges = 1:0.1:2;
-h = histogram(data_stabilityOffRod,edges);
-h.Normalization = 'countdensity';
+tiledlayout(2,1)
+nexttile;
+histogram(data_stabilityOffRod);
+xlabel('Stability off the rod [cal]')
+fontsize(16,"points")
+
+nexttile;
+histogram(data_apogee);
+xlabel('Apogee [ft]')
+fontsize(16,"points")
+ax = gca; % axes handle
+ax.XAxis.Exponent = 0;
+
+
 
 
 

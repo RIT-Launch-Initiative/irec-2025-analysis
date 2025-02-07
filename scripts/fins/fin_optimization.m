@@ -1,6 +1,6 @@
 %% FIN + NOSE WEIGHT OPTIMIZATION
 %  Created by Ares Bustinza-Nguyen
-%  Updated: 2/2/25,
+%  Updated: 2/6/25,
 %
 %  This script brute-forces a range of fin geometries & nose weights,
 %  re-simulates in OpenRocket, and checks constraints.
@@ -26,9 +26,7 @@ sim_name = "15MPH-TEXAS-36C-(TYP)";
 wind_speed_deviation = 0;
 
 % Desired time step for simulation [s]
-time_step = 0.05;
-
-
+time_step = 0.1;
 
 % Fin thickness values [m]
 % Example: 0.003175 m ~ 1/8 in, 0.0047625 m ~ 3/16 in, 0.00635 m ~ 1/4 in
@@ -36,9 +34,9 @@ t_vals = [0.0047625, 0.00635];
 
 % Sweep, tip chord, root chord, and height scaling:
 % For demonstration, these are left at 1 (no scaling).
-Ls_scale = 0.9:0.05:1.1;
-h_scale  = 0.9:0.05:1.1;
-Lt_scale = 0.9:0.05:1.1;
+Ls_scale = 1;
+h_scale  = 0.9:.02:1.1;
+Lt_scale = 0.9:.02:1.1;
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
@@ -49,7 +47,7 @@ FOS_min         = 1.5;    % Fin flutter factor of safety must be > 1.5
 stability_rail  = 1.5;    % Stability margin off rail must be > 1.4 (example)
 stability_max   = 3.95;   % Max stability during flight must be < 4.0
 apogee_lower    = 2980;   % Example lower bound near target_apogee
-target_apogee = 3086;% Target apogee you want to get close to [m], 10150
+target_apogee   = 3086;   % Target apogee you want to get close to [m]
 apogee_upper    = 3280;   % Example upper bound near target_apogee
 minSweepAngle   = 20;     % Minimum sweep angle in degrees
 
@@ -86,7 +84,6 @@ Lt_nom = fins.getTipChord();   % nominal tip chord (m)
 Lr_nom = fins.getRootChord();  % nominal root chord (m)
 h_nom  = fins.getHeight();     % nominal fin height (m)
 
-
 %% 3. SET UP THE ND-GRID (ALL CANDIDATE DESIGNS)
 
 % Create numeric arrays for each parameter using the scale factors:
@@ -102,12 +99,13 @@ num_elements = numel(t_g);
 fprintf("Total # of candidate designs: %d\n", num_elements);
 
 %% 4. PRE-ALLOCATE RESULTS
-
+% Now we add a 12th column for burnout stability.
+%
 % Columns of 'results':
 %   1) iteration index
 %   2) apogee (m)
-%   3) max stability
-%   4) stability off the rail
+%   3) max stability (over flight)
+%   4) stability off the rail (first sample after LAUNCHROD)
 %   5) thickness t (m)
 %   6) Ls (m)
 %   7) Lt (m)
@@ -115,7 +113,8 @@ fprintf("Total # of candidate designs: %d\n", num_elements);
 %   9) h (m)
 %   10) nose mass (kg)
 %   11) fin flutter FOS
-results = NaN(num_elements, 11);
+%   12) stability at burnout (from BURNOUT event)
+results = NaN(num_elements, 12);
 
 % If you have a custom flutter function, define/replace here:
 f_flutter = @FOS_finflutter;
@@ -198,6 +197,14 @@ for i = 1:num_elements
         stb_launchrod = data_trim{1,"Stability margin"};
     end
 
+    % ----- NEW: Extract Stability at Burnout -----
+    stability_burnout = data{eventfilter("BURNOUT"), "Stability margin"};
+    if isempty(stability_burnout)
+        stability_burnout = maxStability;  % fallback if no burnout data
+    else
+        stability_burnout = stability_burnout(1);
+    end
+
     % -------- ENFORCE CONSTRAINTS --------
     pass_constraints = (FINAL_FOS > FOS_min) && ...
                        (stb_launchrod > stability_rail) && ...
@@ -213,7 +220,7 @@ for i = 1:num_elements
 
         % Keep if it meets all constraints
         results(row_index,:) = [ i, apogee_m, maxStability, stb_launchrod, ...
-                                 on_t, on_Ls, on_Lt, on_Lr, on_h, on_noseM, FINAL_FOS];
+                                 on_t, on_Ls, on_Lt, on_Lr, on_h, on_noseM, FINAL_FOS, stability_burnout];
         row_index = row_index + 1;
     else
         fprintf("Iteration %d of %d => t=%.5f in, Ls=%.5f in, Lt=%.5f in, Lr=%.5f in, h=%.5f in, Apogee=%.1f ft, FoS=%.4f, stabRod=%.3f, maxStab=%.3f, sweepAngle=%.3f°, noseMass=%.3f kg => FAIL | Time Rem: %s\n", ...
@@ -244,12 +251,12 @@ best_design = results(idx_closestApogee, :);
 %  - Geometries in inches
 %  - Nose mass in kg
 %  - FOS dimensionless
-conv_factors = [1, m2ft, 1, 1, m2in, m2in, m2in, m2in, m2in, 1, 1];
+conv_factors = [1, m2ft, 1, 1, m2in, m2in, m2in, m2in, m2in, 1, 1, 1];
 
 % Updated column headers:
 titles = {
     'Iter#','Apogee(ft)','MaxStab','Stab@Rail','t(in)','Ls(in)', ...
-    'Lt(in)','Lr(in)','h(in)','NoseMass(kg)','FOS'
+    'Lt(in)','Lr(in)','h(in)','NoseMass(kg)','FOS','Stab@Burnout'
 };
 
 disp(" ");
@@ -259,9 +266,9 @@ disp(array2table(best_design .* conv_factors, 'VariableNames', titles));
 %% 7. DISPLAY ALL VALID RESULTS
 
 fprintf('\nAll Valid Solutions (geometry in inches, apogee in ft):\n');
-fprintf('%-6s %-12s %-10s %-10s %-10s %-10s %-10s %-10s %-10s %-14s %-8s\n', titles{:});
+fprintf('%-6s %-12s %-10s %-10s %-10s %-10s %-10s %-10s %-10s %-14s %-8s %-14s\n', titles{:});
 for r = 1:size(results,1)
-    fprintf('%-6d %-12.1f %-10.3f %-10.3f %-10.5f %-10.5f %-10.5f %-10.5f %-10.5f %-14.5f %-8.3f\n',...
+    fprintf('%-6d %-12.1f %-10.3f %-10.3f %-10.5f %-10.5f %-10.5f %-10.5f %-10.5f %-14.5f %-8.3f %-14.3f\n',...
         results(r,1), ...                     % Iter#
         results(r,2)*m2ft, ...               % Apogee(ft)
         results(r,3), ...                    % MaxStab
@@ -272,7 +279,8 @@ for r = 1:size(results,1)
         results(r,8)*m2in, ...               % Lr(in)
         results(r,9)*m2in, ...               % h(in)
         results(r,10), ...                   % NoseMass(kg)
-        results(r,11));                      % FOS
+        results(r,11), ...                   % FOS
+        results(r,12));                      % Stab@Burnout
 end
 
 % Create a table for easier script-wide use
@@ -290,39 +298,112 @@ figure('Name','Fin + Nose Weight Trade Study (Inch Output in Console)','Color','
 set(gcf,'Position',[100 100 1200 600]);
 
 % Unpack "best design" for quick reference (convert appropriate metrics to ft for plotting)
-best_noseM    = best_design(10);
-best_apogee_ft= best_design(2) * m2ft;
-best_stabRail = best_design(4);
-best_maxStab  = best_design(3);
-best_FOS      = best_design(11);
+best_noseM     = best_design(10);
+best_apogee_ft = best_design(2) * m2ft;
+best_stabRail  = best_design(4);
+best_maxStab   = best_design(3);
+best_FOS       = best_design(11);
 
 % (a) Apogee vs NoseMass
 subplot(2,2,1);
 scatter(results(:,10), results(:,2)*m2ft, 30, 'b','filled'); hold on;
-scatter(best_noseM, best_apogee_ft, 120, 'rp', 'filled');
+scatter(best_noseM, best_apogee_ft, 120, 'rp','filled');
 xlabel('Nose Mass [kg]'); ylabel('Apogee [ft]');
 title('Apogee vs Nose Mass'); grid on;
 
 % (b) Stability off Rail vs NoseMass
 subplot(2,2,2);
 scatter(results(:,10), results(:,4), 30, 'r','filled'); hold on;
-scatter(best_noseM, best_stabRail, 120, 'kp', 'filled');
+scatter(best_noseM, best_stabRail, 120, 'kp','filled');
 xlabel('Nose Mass [kg]'); ylabel('Stability @ Rail');
 title('Stability @ Rail vs Nose Mass'); grid on;
 
 % (c) Max Stability vs Apogee
 subplot(2,2,3);
 scatter(results(:,2)*m2ft, results(:,3), 30, 'g','filled'); hold on;
-scatter(best_apogee_ft, best_maxStab, 120, 'mp', 'filled');
+scatter(best_apogee_ft, best_maxStab, 120, 'mp','filled');
 xlabel('Apogee [ft]'); ylabel('Max Stability');
 title('Max Stability vs Apogee'); grid on;
 
 % (d) FOS vs NoseMass
 subplot(2,2,4);
 scatter(results(:,10), results(:,11), 30, 'k','filled'); hold on;
-scatter(best_noseM, best_FOS, 120, 'gp', 'filled');
+scatter(best_noseM, best_FOS, 120, 'gp','filled');
 xlabel('Nose Mass [kg]'); ylabel('Fin Flutter FOS');
 title('FOS vs Nose Mass'); grid on;
+
+%% 8A. NEW: Plot Stability Margin vs. Each Design Variable
+%
+% For each swept variable, we plot two curves:
+%  - Stability at Burnout (from the BURNOUT event)
+%  - Stability at Launch Rod (first sample after LAUNCHROD)
+%
+% The swept variables are: fin thickness (t), fin sweep (Ls), fin tip chord (Lt),
+% fin height (h) and nose mass.
+figure('Name','Stability Margin vs Design Variables','Color','w','Position',[50 50 1200 600]);
+
+% Prepare x-axis data (converted to inches for fin geometry, or left in kg for nose mass)
+x_t   = results(:,5) * m2in;   % fin thickness in inches
+x_Ls  = results(:,6) * m2in;   % fin sweep in inches
+x_Lt  = results(:,7) * m2in;   % fin tip chord in inches
+x_h   = results(:,9) * m2in;   % fin height in inches
+x_nose = results(:,10);        % nose mass in kg
+x_vars = {x_t, x_Ls, x_Lt, x_h, x_nose};
+var_names = {'Fin Thickness t [in]', 'Fin Sweep Ls [in]', 'Fin Tip Chord Lt [in]', 'Fin Height h [in]', 'Nose Mass [kg]'};
+
+% y-axis: stability margin at burnout and launch rod
+y_burnout = results(:,12);
+y_rail    = results(:,4);
+
+for i = 1:length(x_vars)
+    subplot(2,3,i);
+    % To show trends, we sort the data by the x-variable
+    [x_sorted, sortIdx] = sort(x_vars{i});
+    y_burn_sorted = y_burnout(sortIdx);
+    y_rail_sorted = y_rail(sortIdx);
+    plot(x_sorted, y_burn_sorted, '-ob','LineWidth',1.5, 'MarkerFaceColor','b'); hold on;
+    plot(x_sorted, y_rail_sorted, '-sr','LineWidth',1.5, 'MarkerFaceColor','r');
+    xlabel(var_names{i});
+    ylabel('Stability Margin');
+    title(sprintf('Stability vs %s', var_names{i}));
+    legend('Burnout','Launch Rod','Location','best');
+    grid on;
+end
+
+%% 8B. NEW: Fin Area and Average Fin Position vs Stability @ Rail
+%
+% Fin Area is computed as:
+%   A_fin = ((Lr + Lt)/2)*h
+%
+% The average fin position relative to the mid-root chord is computed as:
+%   Let lambda = Lt/Lr,
+%   x_cp = (Lr/3)*((1+2*lambda)/(1+lambda))
+%   avg_fin_pos = x_cp - (Lr/2)
+%
+% (All dimensions are converted to inches for plotting.)
+figure('Name','Fin Area and Average Fin Position vs Stability @ Rail','Color','w','Position',[150 150 1200 500]);
+
+% Compute fin area [in^2]
+fin_area_in = (((results(:,8)*m2in) + (results(:,7)*m2in)) / 2) .* (results(:,9)*m2in);
+
+% Compute average fin position relative to the mid-root chord [in]
+lambda = results(:,7) ./ results(:,8);  % Lt/Lr
+x_cp = (results(:,8)/3) .* ((1 + 2*lambda) ./ (1 + lambda));  % in meters
+avg_fin_pos_in = (x_cp - results(:,8)/2) * m2in;  % convert to inches
+
+subplot(1,2,1);
+scatter(fin_area_in, results(:,4), 40, 'filled');
+xlabel('Fin Area [in^2]');
+ylabel('Stability @ Rail');
+title('Stability @ Rail vs Fin Area');
+grid on;
+
+subplot(1,2,2);
+scatter(avg_fin_pos_in, results(:,4), 40, 'filled');
+xlabel('Avg. Fin Position Rel. to Mid Root [in]');
+ylabel('Stability @ Rail');
+title('Stability @ Rail vs Avg. Fin Position');
+grid on;
 
 %% 9. RE-RUN THE BEST DESIGN AND PLOT STABILITY VS TIME
 % Set rocket to best-design geometry & save
