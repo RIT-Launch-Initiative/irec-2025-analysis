@@ -54,7 +54,6 @@ for I = 1:nSims
     opts.setWindDirection(wind_dir);    
     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
     opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
-    opts.setWindTurbulenceIntensity(opts.getWindTurbulenceIntensity+(rand()-0.5)*turb_spread)
     opts.setTimeStep(time_step)
         
 
@@ -214,10 +213,19 @@ ax = gca; % axes handle
 ax.XAxis.Exponent = 0;
 
 
+n = length(data_stabilityOffRod);
+meanData = mean(data_stabilityOffRod);
+stdData = std(data_stabilityOffRod);
 
+alpha = 0.10; % For 90% confidence prediction interval
+t_val = tinv(1 - alpha/2, n - 1); % t critical value for 90% interval
 
+margin = t_val * stdData * sqrt(1 + 1/n);
 
+lower_bound = meanData - margin;
+upper_bound = meanData + margin;
 
+fprintf('90%% prediction interval: [%f, %f]\n', lower_bound, upper_bound);
 
 
 
