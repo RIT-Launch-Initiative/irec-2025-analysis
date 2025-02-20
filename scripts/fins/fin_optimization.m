@@ -37,7 +37,7 @@ t_vals = [0.00635];
 Ls_scale = 1;
 h_scale  = 1;
 Lt_scale = 1;
-Lr_scale = 1.0;
+Lr_scale = 1;
 
 % Range of nose cone adjustable weight [kg]
 nose_mass_vals = 0:0.1:1;
