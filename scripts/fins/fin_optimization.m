@@ -26,21 +26,21 @@ sim_name = "15MPH-TEXAS-36C-(TYP)";
 wind_speed_deviation = 0;
 
 % Desired time step for simulation [s]
-time_step = 0.1;
+time_step = 0.01;
 
 % Fin thickness values [m]
 % Example: 0.003175 m ~ 1/8 in, 0.0047625 m ~ 3/16 in, 0.00635 m ~ 1/4 in
-t_vals = [0.0047625, 0.00635];
+t_vals = [0.00635];
 
 % Sweep, tip chord, root chord, and height scaling:
 % For demonstration, these are left at 1 (no scaling).
 Ls_scale = 1;
-h_scale  = 0.9:.02:1.1;
-Lt_scale = 0.9:.02:1.1;
+h_scale  = 1;
+Lt_scale = 1;
 Lr_scale = 1.0;
 
 % Range of nose cone adjustable weight [kg]
-nose_mass_vals = 1:0.25:3;
+nose_mass_vals = 0:0.1:1;
 
 % Constraints (values remain in metric for simulation purposes)
 FOS_min         = 1.5;    % Fin flutter factor of safety must be > 1.5
