@@ -1,0 +1,24 @@
+%% PROGRAMMATIC FREEFORM FIN MODIFICATION EXAMPLE
+
+clear; close all;
+
+%% 1) LOAD ORK AND GET THE FINSET
+ork_file_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+addpath(genpath("C:\lmatlib\sim"));
+
+% Name of the OpenRocket simulation to run
+sim_name = "15MPH-TEXAS-36C-(TYP)";
+
+addpath(genpath("C:\lmatlib\sim"));
+otis = openrocket(ork_file_path);
+
+% Retrieve the sim by name
+sim = otis.sims(sim_name);
+
+% Retrieve the existing fin set
+fins = otis.component(class="FinSet");
+if isempty(fins)
+    error("No FinSet found in the rocket file!");
+end
+
+point 
