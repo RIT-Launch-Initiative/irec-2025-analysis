@@ -9,17 +9,20 @@ in_to_m       = 0.0254;
 in2_to_m2     = 0.00064516;       
 
 %% File Paths and Simulation Names
-% Make sure these are MATLAB string scalars (double quotes)
-ork_file_path1 = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
-sim_name1      = "15MPH-TEXAS-36C-(TYP)";
-
-ork_file_path2 = "C:\irec-2025-analysis\IREC 2024.ork";
-sim_name2      = "Spaceport America 0 MPH Case";
 
 addpath(genpath("C:\lmatlib"));
 
+% file 1
+ork_file_path1 = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+sim_name1      = "15MPH-TEXAS-36C-(TYP)";
+
+% file 2
+ork_file_path2 = "C:\irec-2025-analysis\IREC 2024.ork";
+sim_name2      = "Spaceport America 0 MPH Case";
+
+% parameters, both simulations share
 winddirection = 45;
-wind_speed = 0;
+wind_speed = 5;
 temperature = 27;
 timestep = 0.001;
 launchangle = 6;
@@ -33,10 +36,9 @@ opts1.setWindTurbulenceIntensity(0)
 opts1.setWindSpeedAverage(wind_speed);
 opts1.setLaunchTemperature(temperature);
 opts1.setTimeStep(timestep)
-
-% Adjust rod angle/length to 6, if that's your intention
 opts1.setLaunchRodAngle(launchangle); 
 
+%run simulation
 openrocket.simulate(sim1);
 data1 = openrocket.get_data(sim1);
 
@@ -84,16 +86,16 @@ A_flight2    = rad2deg(aoa2_rad);
 
 metrics_flight2 = computeMetrics(time_flight2, A_flight2);
 
-%% === Plot Both on the Same Axes (Time Zero = Rod Exit) ===
+%% === Plot ===
 figure('Name','AOA Aligned at Rod Exit');
 hold on;
 
-% Use string concatenation with + for DisplayName
+
 plot(time_flight1, A_flight1, 'LineWidth',1.5, ...
-    'DisplayName', sim_name1 + " (RodExit=0s)");
+    'DisplayName', 'OTIS' + " (RodExit=0s)");
 
 plot(time_flight2, A_flight2, 'LineWidth',1.5, ...
-    'DisplayName', sim_name2 + " (RodExit=0s)");
+    'DisplayName', 'OMEN' + " (RodExit=0s)");
 
 xlabel('Time After Rod Exit (s)');
 ylabel('AOA (deg)');

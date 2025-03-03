@@ -2,105 +2,98 @@
 clear; close all; clc;
 
 %% Constants and Unit Conversions
-ft_to_m       = 0.3048;          % Feet to meters
-lbft2_to_kgm2 = 1.35581795;       % lb-ft² to kg-m²
-oz_to_kg      = 0.0283495;        % Ounces to kilograms
-in_to_m       = 0.0254;           % Inches to meters
-in2_to_m2     = 0.00064516;       % Square inches to square meters
+ft_to_m       = 0.3048;           
+lbft2_to_kgm2 = 1.35581795;       
+oz_to_kg      = 0.0283495;        
+in_to_m       = 0.0254;           
+in2_to_m2     = 0.00064516;       
 
-%% File Paths and Analysis Parameters
-ork_file_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+%% File Paths and Simulation Names
+% Make sure these are MATLAB string scalars (double quotes)
+ork_file_path1 = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+sim_name1      = "15MPH-TEXAS-36C-(TYP)";
+
+ork_file_path2 = "C:\irec-2025-analysis\IREC 2024.ork";
+sim_name2      = "Spaceport America 0 MPH Case";
+
 addpath(genpath("C:\lmatlib"));
-sim_name = "15MPH-TEXAS-36C-(TYP)";
 
-% Start time (specific to dataset) and analysis duration [s]
-starttime = 0.74;   % otis start time 
-analysisDuration = 4.05;  % seconds
+winddirection = 45;
+wind_speed = 0;
+temperature = 27;
+timestep = 0.01;
+launchangle = 6;
 
-%% Process the Data Files
-% Get the simulation and run it
-sim = otis.sims(sim_name);
-opts = sim.getOptions;
-openrocket.simulate(sim);
-data = openrocket.get_data(sim);
+%% === Simulation 1 ===
+otis1 = openrocket(ork_file_path1);
+sim1  = otis1.sims(sim_name1);
 
-% Process the data using the analysis window [starttime, starttime+analysisDuration]
-[time_flight, A_flight, metrics_flight] = processData(data, starttime, analysisDuration);
+opts1 = sim1.getOptions;
+opts1.setWindDirection(winddirection);  
+opts1.setWindTurbulenceIntensity(0);
+opts1.setWindSpeedAverage(wind_speed);
+opts1.setLaunchTemperature(temperature);
+opts1.setTimeStep(timestep);
+opts1.setLaunchRodAngle(launchangle); 
 
-%% Tiled Plot of Angle-of-Attack (AOA) Data with Linked Axes
-figure;
-tiledLayout = tiledlayout(1,1, 'TileSpacing', 'Compact');
+openrocket.simulate(sim1);
+data1 = openrocket.get_data(sim1);
 
-% Flight Test Plot
-ax1 = nexttile;
-plot(time_flight, A_flight, 'g', 'LineWidth', 1.5);
+% -- Filter data from LAUNCHROD to APOGEE
+data_range1 = timerange(eventfilter("LAUNCHROD"), eventfilter("APOGEE"), "openleft");
+data2       = data1(data_range1, :);
+
+% -- Shift so rod exit is t=0
+time_flight1  = seconds(data1.Time);
+
+% -- Limit to data where AOA is below 5 deg
+aoa1_rad = data1.('Angle of attack');
+A_flight1 = rad2deg(aoa1_rad);
+% valid_1   = (A_flight1 <= 15);
+% time_flight1 = time_flight1(valid_1);
+% A_flight1 = A_flight1(valid_1);
+
+% -- Compute metrics
+metrics_flight1 = computeMetrics(time_flight1, A_flight1);
+
+
+%% === Plot Both on the Same Axes (Data where AOA < 5°) ===
+figure('Name','AOA Comparison for AOA < 5°');
 hold on;
-% Plot tolerance band lines for Flight Test
-y_upper_flight = metrics_flight.final_val + metrics_flight.band;
-y_lower_flight = metrics_flight.final_val - metrics_flight.band;
-plot([time_flight(1) time_flight(end)], [y_upper_flight y_upper_flight], 'r--', 'LineWidth', 1);
-plot([time_flight(1) time_flight(end)], [y_lower_flight y_lower_flight], 'r--', 'LineWidth', 1);
-xlabel('Time (s)');
+
+plot(time_flight1, A_flight1, 'LineWidth',1.5, ...
+    'DisplayName', sim_name1 + " (AOA < 5°)");
+
+xlabel('Time After Rod Exit (s)');
 ylabel('AOA (deg)');
-title('OTIS AOA');
+title('AOA Comparison, Data Limited to AOA < 5°');
+legend('Location','best');
 grid on;
 
-%% Display a Comparison Report of the Metrics
-fprintf('\n=== Response Metrics Comparison ===\n');
-fprintf('\n--- OTIS ---\n');
-displayMetrics(metrics_flight);
+%% === Display Metrics ===
+fprintf('\n=== Response Metrics (Data where AOA < 5°) ===\n\n');
+fprintf('--- Simulation 1: %s ---\n', sim_name1);
+displayMetrics(metrics_flight1);
 
-%% --- Local Functions ---
-
-function [time_array, A_array, metrics] = processData(data, startTime, duration)
-    % processData Extracts time and angle-of-attack from simulation data
-    %   [time_array, A_array, metrics] = processData(data, startTime, duration)
-    %
-    %   Assumes that the input table 'data' from OpenRocket contains columns 
-    %   'Time_sec_' and 'AngleOfAttack_deg_'. Adjust these header names if needed.
-    
-    % Extract time and AOA columns from the simulation data table
-    time_array = data.Time_sec_;
-    A_array = data.AngleOfAttack_deg_;
-    
-    % Round time values for consistency
-    time_array = round(time_array, 3);
-    
-    % Limit data to the desired analysis window
-    valid_indices = (time_array >= startTime) & (time_array <= (startTime + duration));
-    time_array = time_array(valid_indices);
-    A_array = A_array(valid_indices);
-    
-    % Compute response metrics
-    metrics = computeMetrics(time_array, A_array);
-end
+%% --- LOCAL FUNCTIONS ---
 
 function metrics = computeMetrics(time_array, A_array)
-    % computeMetrics Computes response metrics from time and AOA data
-    %
-    % Metrics computed:
-    %   - initial and final value
-    %   - rise time (10% to 90% of the step)
-    %   - peak value and time
-    %   - overshoot and undershoot (percentage)
-    %   - settling time (within 2% tolerance band)
-    
-    % Initial and Final values
+    % Minimal version of the metrics computation 
     initial_val = A_array(1);
-    n_final = max(1, round(0.1 * length(A_array)));  % average last 10% for smoothing
+    n_final = max(1, round(0.1*length(A_array)));
     final_val = mean(A_array(end - n_final + 1 : end));
-    
-    % Compute 10% and 90% levels for rise time determination
+
+    % 10% & 90% thresholds
     if final_val >= initial_val
-        level10 = initial_val + 0.1 * (final_val - initial_val);
-        level90 = initial_val + 0.9 * (final_val - initial_val);
-        idx10 = find(A_array >= level10, 1, 'first');
-        idx90 = find(A_array >= level90, 1, 'first');
+        level10 = initial_val + 0.1*(final_val - initial_val);
+        level90 = initial_val + 0.9*(final_val - initial_val);
+        idx10   = find(A_array >= level10,1,'first');
+        idx90   = find(A_array >= level90,1,'first');
     else
-        level10 = initial_val - 0.1 * (initial_val - final_val);
-        level90 = initial_val - 0.9 * (initial_val - final_val);
-        idx10 = find(A_array <= level10, 1, 'first');
-        idx90 = find(A_array <= level90, 1, 'first');
+        level10 = initial_val - 0.1*(initial_val - final_val);
+        level90 = initial_val - 0.9*(initial_val - final_val);
+        idx10   = find(A_array <= level10,1,'first');
+        idx90   = find(A_array <= level90,1,'first');
     end
     
     if ~isempty(idx10) && ~isempty(idx90)
@@ -108,79 +101,49 @@ function metrics = computeMetrics(time_array, A_array)
     else
         rise_time = NaN;
     end
-    
-    % Determine Peak Value and Time
+
+    % Peak value/time
     if final_val >= initial_val
         [peak_val, idx_peak] = max(A_array);
     else
         [peak_val, idx_peak] = min(A_array);
     end
     peak_time = time_array(idx_peak);
-    
-    % Calculate Overshoot (percentage)
+
+    % Overshoot
     if final_val >= initial_val
-        if peak_val > final_val
-            overshoot = (peak_val - final_val) / (final_val - initial_val) * 100;
-        else
-            overshoot = 0;
-        end
+        overshoot = max(0, (peak_val - final_val) / (final_val - initial_val)*100);
     else
-        if peak_val < final_val
-            overshoot = (final_val - peak_val) / (initial_val - final_val) * 100;
-        else
-            overshoot = 0;
-        end
+        overshoot = max(0, (final_val - peak_val) / (initial_val - final_val)*100);
     end
-    
-    % Calculate Undershoot (percentage)
-    if final_val >= initial_val
-        min_val = min(A_array);
-        if min_val < final_val
-            undershoot = (final_val - min_val) / (final_val - initial_val) * 100;
-        else
-            undershoot = 0;
-        end
-    else
-        max_val = max(A_array);
-        if max_val > final_val
-            undershoot = (max_val - final_val) / (initial_val - final_val) * 100;
-        else
-            undershoot = 0;
-        end
-    end
-    
-    % Compute Settling Time: time after which the response remains within a tolerance band
-    tolerance = 0.02;  % 2% tolerance (adjustable)
-    step_height = abs(final_val - initial_val);
-    band = tolerance * step_height;
+
+    % Settling time (±5%)
+    tolerance = 0.05;
+    band      = tolerance*abs(final_val - initial_val);
     settling_time = NaN;
-    for k = 1:length(A_array)
+    for k=1:length(A_array)
         if all(abs(A_array(k:end) - final_val) <= band)
             settling_time = time_array(k);
             break;
         end
     end
-    
-    % Pack computed metrics into a structure
+
+    % Package metrics
     metrics.initial_val   = initial_val;
     metrics.final_val     = final_val;
     metrics.rise_time     = rise_time;
     metrics.peak_time     = peak_time;
     metrics.peak_val      = peak_val;
     metrics.overshoot     = overshoot;
-    metrics.undershoot    = undershoot;
     metrics.settling_time = settling_time;
-    metrics.band          = band;  % for plotting tolerance lines
 end
 
 function displayMetrics(metrics)
-    % displayMetrics Prints the response metrics in a readable format.
-    fprintf('Initial Value: %.4f\n', metrics.initial_val);
-    fprintf('Final Value: %.4f\n', metrics.final_val);
-    fprintf('Rise Time (10%% to 90%%): %.4f s\n', metrics.rise_time);
-    fprintf('Peak Time: %.4f s\n', metrics.peak_time);
-    fprintf('Peak Value: %.4f\n', metrics.peak_val);
-    fprintf('Overshoot: %.2f%%\n', metrics.overshoot);
-    fprintf('Undershoot: %.2f%%\n', metrics.undershoot);
-    fprintf('Settling Time: %.4f s\n', metrics.settling_time);
+    fprintf('Initial AOA:              %.4f\n', metrics.initial_val);
+    fprintf('Final AOA:                %.4f\n', metrics.final_val);
+    fprintf('AOA Rise Time (10-90%%):   %.4f s\n', metrics.rise_time);
+    fprintf('Peak Time (s):            %.4f\n', metrics.peak_time);
+    fprintf('Peak Angle-of-Attack:     %.4f deg\n', metrics.peak_val);
+    fprintf('Overshoot:                %.2f%%\n', metrics.overshoot);
+    fprintf('Settling Time:            %.4f s\n', metrics.settling_time);
 end
