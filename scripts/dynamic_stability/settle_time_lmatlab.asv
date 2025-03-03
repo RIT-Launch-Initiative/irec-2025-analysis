@@ -9,23 +9,27 @@ in_to_m       = 0.0254;           % Inches to meters
 in2_to_m2     = 0.00064516;       % Square inches to square meters
 
 %% File Paths and Analysis Parameters
-flightTestFile = 'C:\Users\kyle1\Downloads\Flight Test.CSV';
-windTunnelFile = 'C:\Users\kyle1\Downloads\Kyle_wind_tunnel_OMEN.CSV';
+ork_file_path = "C:\irec-2025-analysis\IREC_2025_M6000ST-0.ork";
+addpath(genpath("C:\lmatlib"));
+sim_name = "15MPH-TEXAS-36C-(TYP)";
 
-% Start times (different for each dataset)
-flightTestStart = 0.74;   % Flight Test start time
-windTunnelStart = 1.1;    % Wind Tunnel start time
-
-% Define analysis window duration (seconds)
-analysisDuration = 4.05;  % For example, using similar duration for both datasets
+% Start time (specific to dataset) and analysis duration [s]
+starttime = 0.74;   % otis start time 
+analysisDuration = 4.05;  % seconds
 
 %% Process the Data Files
-[time_flight, A_flight, metrics_flight] = processData(flightTestFile, flightTestStart, analysisDuration);
-[time_wind, A_wind, metrics_wind] = processData(windTunnelFile, windTunnelStart, analysisDuration);
+% Get the simulation and run it
+sim = otis.sims(sim_name);
+opts = sim.getOptions;
+openrocket.simulate(sim);
+data = openrocket.get_data(sim);
+
+% Process the data using the analysis window [starttime, starttime+analysisDuration]
+[time_flight, A_flight, metrics_flight] = processData(data, starttime, analysisDuration);
 
 %% Tiled Plot of Angle-of-Attack (AOA) Data with Linked Axes
 figure;
-tiledLayout = tiledlayout(1,2, 'TileSpacing', 'Compact');
+tiledLayout = tiledlayout(1,1, 'TileSpacing', 'Compact');
 
 % Flight Test Plot
 ax1 = nexttile;
@@ -41,49 +45,28 @@ ylabel('AOA (deg)');
 title('OTIS AOA');
 grid on;
 
-% Wind Tunnel Plot
-ax2 = nexttile;
-plot(time_wind, A_wind, 'b', 'LineWidth', 1.5);
-hold on;
-% Plot tolerance band lines for Wind Tunnel
-y_upper_wind = metrics_wind.final_val + metrics_wind.band;
-y_lower_wind = metrics_wind.final_val - metrics_wind.band;
-plot([time_wind(1) time_wind(end)], [y_upper_wind y_upper_wind], 'r--', 'LineWidth', 1);
-plot([time_wind(1) time_wind(end)], [y_lower_wind y_lower_wind], 'r--', 'LineWidth', 1);
-xlabel('Time (s)');
-ylabel('AOA (deg)');
-title('OMEN AOA');
-grid on;
-
-% Link the axes of the two subplots to ensure the same scale
-linkaxes([ax1, ax2], 'xy');
-
 %% Display a Comparison Report of the Metrics
 fprintf('\n=== Response Metrics Comparison ===\n');
-
 fprintf('\n--- OTIS ---\n');
 displayMetrics(metrics_flight);
 
-fprintf('\n--- OMEN ---\n');
-displayMetrics(metrics_wind);
-
 %% --- Local Functions ---
 
-function [time_array, A_array, metrics] = processData(filePath, startTime, duration)
-    % Reads the CSV file, extracts time and angle-of-attack data, limits the 
-    % data to the analysis window [startTime, startTime+duration], and computes metrics.
+function [time_array, A_array, metrics] = processData(data, startTime, duration)
+    % processData Extracts time and angle-of-attack from simulation data
+    %   [time_array, A_array, metrics] = processData(data, startTime, duration)
+    %
+    %   Assumes that the input table 'data' from OpenRocket contains columns 
+    %   'Time_sec_' and 'AngleOfAttack_deg_'. Adjust these header names if needed.
     
-    % Read data from CSV
-    data = readtable(filePath);
-    
-    % Extract time and AOA columns (assumes the CSV contains these headers)
+    % Extract time and AOA columns from the simulation data table
     time_array = data.Time_sec_;
     A_array = data.AngleOfAttack_deg_;
     
     % Round time values for consistency
     time_array = round(time_array, 3);
     
-    % Limit data to the desired time interval
+    % Limit data to the desired analysis window
     valid_indices = (time_array >= startTime) & (time_array <= (startTime + duration));
     time_array = time_array(valid_indices);
     A_array = A_array(valid_indices);
@@ -93,8 +76,14 @@ function [time_array, A_array, metrics] = processData(filePath, startTime, durat
 end
 
 function metrics = computeMetrics(time_array, A_array)
-    % Computes response metrics (initial value, final value, rise time, peak value/time,
-    % overshoot, undershoot, settling time) based on the provided time and AOA arrays.
+    % computeMetrics Computes response metrics from time and AOA data
+    %
+    % Metrics computed:
+    %   - initial and final value
+    %   - rise time (10% to 90% of the step)
+    %   - peak value and time
+    %   - overshoot and undershoot (percentage)
+    %   - settling time (within 2% tolerance band)
     
     % Initial and Final values
     initial_val = A_array(1);
@@ -161,7 +150,7 @@ function metrics = computeMetrics(time_array, A_array)
     end
     
     % Compute Settling Time: time after which the response remains within a tolerance band
-    tolerance = 0.02;  % 2% tolerance (can be adjusted)
+    tolerance = 0.02;  % 2% tolerance (adjustable)
     step_height = abs(final_val - initial_val);
     band = tolerance * step_height;
     settling_time = NaN;
@@ -181,11 +170,11 @@ function metrics = computeMetrics(time_array, A_array)
     metrics.overshoot     = overshoot;
     metrics.undershoot    = undershoot;
     metrics.settling_time = settling_time;
-    metrics.band          = band;  % include band for plotting tolerance lines
+    metrics.band          = band;  % for plotting tolerance lines
 end
 
 function displayMetrics(metrics)
-    % Prints the response metrics to the console in a readable format.
+    % displayMetrics Prints the response metrics in a readable format.
     fprintf('Initial Value: %.4f\n', metrics.initial_val);
     fprintf('Final Value: %.4f\n', metrics.final_val);
     fprintf('Rise Time (10%% to 90%%): %.4f s\n', metrics.rise_time);
