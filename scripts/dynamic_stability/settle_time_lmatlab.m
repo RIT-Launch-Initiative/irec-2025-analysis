@@ -21,8 +21,9 @@ ork_file_path2 = "C:\irec-2025-analysis\IREC 2024.ork";
 sim_name2      = "Spaceport America 0 MPH Case";
 
 % parameters, both simulations share
+time = 1.5; % seconds
 winddirection = 45;
-wind_speed = 5;
+wind_speed = 15;
 temperature = 27;
 timestep = 0.001;
 launchangle = 6;
@@ -51,7 +52,7 @@ rodExitTime1  = data1.Time(1);
 time_flight1  = seconds(data1.Time - rodExitTime1);
 
 % -- Limit to first 5 seconds
-valid_1      = (time_flight1 <= 5);
+valid_1      = (time_flight1 <= time);
 time_flight1 = time_flight1(valid_1);
 aoa1_rad     = data1.('Angle of attack')(valid_1);
 A_flight1    = rad2deg(aoa1_rad);
@@ -79,7 +80,7 @@ data2       = data2(data_range2, :);
 rodExitTime2  = data2.Time(1);
 time_flight2  = seconds(data2.Time - rodExitTime2);
 
-valid_2      = (time_flight2 <= 5);
+valid_2      = (time_flight2 <= time);
 time_flight2 = time_flight2(valid_2);
 aoa2_rad     = data2.('Angle of attack')(valid_2);
 A_flight2    = rad2deg(aoa2_rad);
@@ -87,24 +88,24 @@ A_flight2    = rad2deg(aoa2_rad);
 metrics_flight2 = computeMetrics(time_flight2, A_flight2);
 
 %% === Plot ===
-figure('Name','AOA Aligned at Rod Exit');
+figure('Name','AOA Aligned at Off The Rod');
 hold on;
 
 
 plot(time_flight1, A_flight1, 'LineWidth',1.5, ...
-    'DisplayName', 'OTIS' + " (RodExit=0s)");
+    'DisplayName', 'OTIS');
 
 plot(time_flight2, A_flight2, 'LineWidth',1.5, ...
-    'DisplayName', 'OMEN' + " (RodExit=0s)");
+    'DisplayName', 'OMEN');
 
 xlabel('Time After Rod Exit (s)');
 ylabel('AOA (deg)');
-title('AOA Comparison, Both Aligned at Rod Exit');
+title('AOA Comparison, Both Aligned at Off The rod Time');
 legend('Location','best');
 grid on;
 
 %% === Display Metrics ===
-fprintf('\n=== Response Metrics (Aligned at Rod Exit) ===\n\n');
+fprintf('\n=== Response Metrics (Aligned at Rod Exit Time) ===\n\n');
 fprintf('--- Simulation 1: %s ---\n', sim_name1);
 displayMetrics(metrics_flight1);
 
@@ -147,7 +148,7 @@ function metrics = computeMetrics(time_array, A_array)
     peak_time = time_array(idx_peak);
 
     % Overshoot
-    if final_val >= initial_val
+    if initial_val >= final_val
         overshoot = max(0, (peak_val - final_val) / (final_val - initial_val)*100);
     else
         overshoot = max(0, (final_val - peak_val) / (initial_val - final_val)*100);
