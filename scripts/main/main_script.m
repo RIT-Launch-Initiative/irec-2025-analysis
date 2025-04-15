@@ -186,15 +186,10 @@ fontsize(16,"points")
 %% plot funciton
 function plotlables(config)
     if config == 1
-        yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        yline(9000, 'r--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        fontsize(16,"points");
+        
     elseif config == 2
         ylim([1 2])
-        ylabel('Stability (body calibers)'); %xlabel function
-        yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-    end
+            end
     grid;
     grid minor;
 end
@@ -205,39 +200,24 @@ histogram(data_stabilityOffRod);
 xlabel('Stability off the rod [cal]')
 fontsize(16,"points")
 
+xlabel('Stability (body calibers)'); %xlabel function
+xline(1.5, 'k--', 'MIN STAB', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+fontsize(16,"points");
+
 nexttile;
 histogram(data_apogee);
+xline(11000, 'k--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+xline(10000, 'k--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+xline(9000, 'k--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+xlim([8500 12500])
 xlabel('Apogee [ft]')
+
 fontsize(16,"points")
 ax = gca; % axes handle
 ax.XAxis.Exponent = 0;
 
 
-n = length(data_stabilityOffRod);
 
-mean_stab= mean(data_stabilityOffRod)
-std_stab = std(data_stabilityOffRod)
-
-mean_windspeed= mean(data_wind_speeds)
-std_windspeed = std(data_wind_speeds)
-
-mean_windDir= mean(data_wind_direciton)
-std_windDir = std(data_wind_direciton)
-
-mean_temp = mean(data_temp)
-std_temp = std(data_temp)
-
-
-
-alpha = 0.10; % For 90% confidence prediction interval
-t_val = tinv(1 - alpha/2, n - 1); % t critical value for 90% interval
-
-margin = t_val * stdData * sqrt(1 + 1/n);
-
-lower_bound = meanData - margin;
-upper_bound = meanData + margin;
-
-fprintf('90%% prediction interval: [%f, %f]\n', lower_bound, upper_bound);
 
 
 
