@@ -21,13 +21,14 @@ opts = sim.getOptions();
 
 %Monte carlo variables
 nSims = 2000; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-wind_speed = 6.7; %m/s
-wind_speed_spread = 5; % m/s
+wind_speed = 4.47; %m/s
+wind_speed_spread =2.235; % m/s
 wind_direction = 45;
 temp_spread = 20; % c
 temp = opts.getLaunchTemperature;
 wind_direction_spread = 360;
 time_step = 0.05;
+turb = 0;
 
 %conversion factors
 m_sTOmph = 2.237136;
@@ -51,7 +52,7 @@ for I = 1:nSims
     opts.setLaunchIntoWind(false);
     wind_dir = wind_direction+(rand()-0.5)*wind_direction_spread;
     opts.setWindDirection(wind_dir);  
-    opts.setWindTurbulenceIntensity(0.15)
+    opts.setWindTurbulenceIntensity(turb)
     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
     opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
     opts.setTimeStep(time_step)
