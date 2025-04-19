@@ -3,8 +3,6 @@
 close all;clear; 
 
 
-
-
 addpath(genpath("C:\\lmatlib"))
 addpath(genpath("C:\lmatlib\sim"));
 
@@ -20,14 +18,14 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 2000; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-wind_speed = 4.47; %m/s
-wind_speed_spread =2.235; % m/s
+nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+wind_speed = 2.235; %m/s
+wind_speed_spread =0; % m/s
 wind_direction = 45;
-temp_spread = 20; % c
+temp_spread = 0; % c
 temp = opts.getLaunchTemperature;
-wind_direction_spread = 360;
-time_step = 0.05;
+wind_direction_spread = 0;
+time_step = 0.01;
 turb = 0;
 
 %conversion factors
@@ -42,6 +40,8 @@ data_temp = zeros(1,nSims);
 data_wind_direciton = zeros(1,nSims);
 data_apogee = zeros(1,nSims);
 data_time_to_stab = zeros(1,nSims);
+data_settle_time = zeros(1,nSims);
+data_overshoot      = zeros(1, nSims);
 
 
 
@@ -70,6 +70,13 @@ for I = 1:nSims
     % collect interesting information
     stabilityMargin = data{:, 'Stability margin'};
     data_stabilityOffRod (1,I) = data{1, 'Stability margin'};
+
+    % compute settling time & overshoot
+    aoa_rad       = data.("Angle of attack");
+    aoa_deg  = rad2deg(aoa_rad);
+    metrics = computeMetrics(data.Time, aoa_deg);
+    data_settle_time(I) = metrics.settling_time;
+    data_overshoot(I)   = metrics.overshoot;
 
     % time to stability 1.5 data
     if data_stabilityOffRod(1,I) >= 1.5
@@ -216,6 +223,36 @@ xlabel('Apogee [ft]')
 fontsize(16,"points")
 ax = gca; % axes handle
 ax.XAxis.Exponent = 0;
+
+
+function metrics = computeMetrics(time_array, A_array)
+    % compute final value
+    initial_val = A_array(1);
+    n_final     = max(1, round(0.1*length(A_array)));
+    final_val   = mean(A_array(end - n_final + 1 : end));
+
+    % first‑peak overshoot
+    if final_val >= initial_val
+        [~, locs] = findpeaks(A_array);
+    else
+        [~, locs] = findpeaks(-A_array);
+    end
+    idx_peak   = locs(1) * ( ~isempty(locs) ) + ( isempty(locs) ); 
+    peak_val   = A_array(idx_peak);
+    % overshoot %
+    metrics.overshoot = abs(peak_val - final_val) / max(abs(final_val - initial_val), eps) * 100;
+
+    % settling‑time (±2%)
+    tol    = 0.02 * abs(final_val - initial_val);
+    stime  = NaN;
+    for k = 1:length(A_array)
+        if all(abs(A_array(k:end) - final_val) <= tol)
+            stime = time_array(k);
+            break;
+        end
+    end
+    metrics.settling_time = stime;
+end
 
 
 
