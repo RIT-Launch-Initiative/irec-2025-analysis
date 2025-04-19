@@ -74,7 +74,7 @@ for I = 1:nSims
     % compute settling time & overshoot
     aoa_rad       = data.("Angle of attack");
     aoa_deg  = rad2deg(aoa_rad);
-    metrics = computeMetrics(data.Time, aoa_deg);
+    metrics = computeMetrics(seconds(data.Time), aoa_deg);
     data_settle_time(I) = metrics.settling_time;
     data_overshoot(I)   = metrics.overshoot;
 
