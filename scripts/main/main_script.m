@@ -19,8 +19,8 @@ opts = sim.getOptions();
 
 %Monte carlo variables
 nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-wind_speed = 2.235; %m/s
-wind_speed_spread =0; % m/s
+wind_speed = 4.47; %m/s
+wind_speed_spread = 0.6705*3; % m/s
 wind_direction = 45;
 temp_spread = 0; % c
 temp = opts.getLaunchTemperature;
@@ -74,9 +74,20 @@ for I = 1:nSims
     % compute settling time & overshoot
     aoa_rad       = data.("Angle of attack");
     aoa_deg  = rad2deg(aoa_rad);
-    metrics = computeMetrics(seconds(data.Time), aoa_deg);
-    data_settle_time(I) = metrics.settling_time;
-    data_overshoot(I)   = metrics.overshoot;
+
+    initial_val = aoa_deg(1);
+    final_val   = 0;         
+    tol         = 0.1;
+    thresh      = final_val + tol*initial_val;
+    
+    i_over = find(aoa_deg > tol*initial_val, 1, "last");
+    settle_time = seconds(data.Time(i_over+1))
+
+
+    overshoot = computeOvershoot(aoa_deg);
+
+    data_settle_time(I) = settle_time;
+    data_overshoot(I)   = overshoot;
 
     % time to stability 1.5 data
     if data_stabilityOffRod(1,I) >= 1.5
@@ -225,11 +236,10 @@ ax = gca; % axes handle
 ax.XAxis.Exponent = 0;
 
 
-function metrics = computeMetrics(time_array, A_array)
+function overshoot = computeOvershoot(A_array)
     % compute final value
     initial_val = A_array(1);
-    n_final     = max(1, round(0.1*length(A_array)));
-    final_val   = mean(A_array(end - n_final + 1 : end));
+    final_val   = A_array(end,1);
 
     % first‑peak overshoot
     if final_val >= initial_val
@@ -240,18 +250,7 @@ function metrics = computeMetrics(time_array, A_array)
     idx_peak   = locs(1) * ( ~isempty(locs) ) + ( isempty(locs) ); 
     peak_val   = A_array(idx_peak);
     % overshoot %
-    metrics.overshoot = abs(peak_val - final_val) / max(abs(final_val - initial_val), eps) * 100;
-
-    % settling‑time (±2%)
-    tol    = 0.02 * abs(final_val - initial_val);
-    stime  = NaN;
-    for k = 1:length(A_array)
-        if all(abs(A_array(k:end) - final_val) <= tol)
-            stime = time_array(k);
-            break;
-        end
-    end
-    metrics.settling_time = stime;
+    overshoot = abs(peak_val - final_val) / max(abs(final_val - initial_val), eps) * 100;
 end
 
 

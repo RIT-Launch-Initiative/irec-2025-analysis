@@ -3,8 +3,6 @@
 close all;clear; 
 
 
-
-
 addpath(genpath("C:\\lmatlib"))
 addpath(genpath("C:\lmatlib\sim"));
 
@@ -20,15 +18,15 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 1000; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-turb_spread = 0.05;
-wind_speed = 6.7; %m/s
-wind_speed_spread = 5; % m/s
+nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+wind_speed = 4.47; %m/s
+wind_speed_spread = 0.6705*3; % m/s
 wind_direction = 45;
-temp_spread = 20; % c
+temp_spread = 0; % c
 temp = opts.getLaunchTemperature;
-wind_direction_spread = 360;
-time_step = 0.05;
+wind_direction_spread = 0;
+time_step = 0.001;
+turb = 0;
 
 %conversion factors
 m_sTOmph = 2.237136;
@@ -42,6 +40,8 @@ data_temp = zeros(1,nSims);
 data_wind_direciton = zeros(1,nSims);
 data_apogee = zeros(1,nSims);
 data_time_to_stab = zeros(1,nSims);
+data_settle_time = zeros(1,nSims);
+data_overshoot      = zeros(1, nSims);
 
 
 
@@ -51,7 +51,8 @@ for I = 1:nSims
     % set randomized sim variable
     opts.setLaunchIntoWind(false);
     wind_dir = wind_direction+(rand()-0.5)*wind_direction_spread;
-    opts.setWindDirection(wind_dir);    
+    opts.setWindDirection(wind_dir);  
+    opts.setWindTurbulenceIntensity(turb)
     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
     opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
     opts.setTimeStep(time_step)
@@ -69,6 +70,31 @@ for I = 1:nSims
     % collect interesting information
     stabilityMargin = data{:, 'Stability margin'};
     data_stabilityOffRod (1,I) = data{1, 'Stability margin'};
+
+    % compute settling time & overshoot
+    aoa_rad       = data.("Angle of attack");
+    aoa_deg  = rad2deg(aoa_rad);
+
+    initial_val = aoa_deg(1);
+    final_val   = 0;         
+    tol         = 0.05;
+    thresh      = final_val + tol*initial_val
+    
+    i_over = find(aoa_deg > tol*initial_val, 1, "last")
+    settle_time = seconds(data.Time(i_over+1))
+    % Scan forward until aoa stays within ±tol band around final_val
+    for k = 1:height(aoa_deg)
+        if aoa_deg(k,1)<= tol*initial_val 
+            settle_time = seconds(data.Time(k,1))
+            break
+        end
+    end
+
+
+    overshoot = computeOvershoot(aoa_deg);
+
+    data_settle_time(I) = settle_time;
+    data_overshoot(I)   = overshoot;
 
     % time to stability 1.5 data
     if data_stabilityOffRod(1,I) >= 1.5
@@ -186,15 +212,10 @@ fontsize(16,"points")
 %% plot funciton
 function plotlables(config)
     if config == 1
-        yline(11000, 'r--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        yline(10000, 'g--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        yline(9000, 'r--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-        fontsize(16,"points");
+        
     elseif config == 2
         ylim([1 2])
-        ylabel('Stability (body calibers)'); %xlabel function
-        yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-    end
+            end
     grid;
     grid minor;
 end
@@ -205,36 +226,42 @@ histogram(data_stabilityOffRod);
 xlabel('Stability off the rod [cal]')
 fontsize(16,"points")
 
+xlabel('Stability (body calibers)'); %xlabel function
+xline(1.5, 'k--', 'MIN STAB', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+fontsize(16,"points");
+
 nexttile;
 histogram(data_apogee);
+xline(11000, 'k--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+xline(10000, 'k--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+xline(9000, 'k--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
+xlim([8500 12500])
 xlabel('Apogee [ft]')
+
 fontsize(16,"points")
 ax = gca; % axes handle
 ax.XAxis.Exponent = 0;
 
 
-n = length(data_stabilityOffRod);
+function overshoot = computeOvershoot(A_array)
+    % compute final value
+    initial_val = A_array(1);
+    final_val   = A_array(end,1);
 
-mean_stab= mean(data_stabilityOffRod)
-std_w = std(data_stabilityOffRod)
+    % first‑peak overshoot
+    if final_val >= initial_val
+        [~, locs] = findpeaks(A_array);
+    else
+        [~, locs] = findpeaks(-A_array);
+    end
+    idx_peak   = locs(1) * ( ~isempty(locs) ) + ( isempty(locs) ); 
+    peak_val   = A_array(idx_peak);
+    % overshoot %
+    overshoot = abs(peak_val - final_val) / max(abs(final_val - initial_val), eps) * 100;
+end
 
-mean_windspeed= mean(data_stabilityOffRod)
-std_windspeed = std(data_stabilityOffRod)
-
-mean_stab= mean(data_stabilityOffRod)
-stdData = std(data_stabilityOffRod)
 
 
-
-alpha = 0.10; % For 90% confidence prediction interval
-t_val = tinv(1 - alpha/2, n - 1); % t critical value for 90% interval
-
-margin = t_val * stdData * sqrt(1 + 1/n);
-
-lower_bound = meanData - margin;
-upper_bound = meanData + margin;
-
-fprintf('90%% prediction interval: [%f, %f]\n', lower_bound, upper_bound);
 
 
 

@@ -1,5 +1,11 @@
 close all;
 %% Visualization 
+% settle time vs wind speed.
+figure;
+scatter(data_wind_speeds,data_settle_time)
+xlabel('Wind speed [m/s]')
+ylabel('Settle time')
+
 figure;
 tiledlayout(2,1)
 nexttile;
