@@ -18,15 +18,17 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-wind_speed = 4.47; %m/s
-wind_speed_spread = 0.6705*3; % m/s
+nSims = 250; 
+wind_speed = 6.7; %m/s
+wind_speed_spread = 1; % m/s
+wind_speed_devation = (wind_speed/10);
 wind_direction = 45;
-temp_spread = 0; % c
+temp_spread = 20; % c
 temp = opts.getLaunchTemperature;
-wind_direction_spread = 0;
-time_step = 0.001;
-turb = 0;
+wind_direction_spread = 360;
+time_step = 0.01;
+turb = 0.1;
+tol= 0.1;
 
 %conversion factors
 m_sTOmph = 2.237136;
@@ -42,6 +44,8 @@ data_apogee = zeros(1,nSims);
 data_time_to_stab = zeros(1,nSims);
 data_settle_time = zeros(1,nSims);
 data_overshoot      = zeros(1, nSims);
+data_aoa = cell(nSims,1);
+data_settle_threshold = zeros(nSims,1);
 
 
 
@@ -56,6 +60,8 @@ for I = 1:nSims
     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
     opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
     opts.setTimeStep(time_step)
+    opts.setWindSpeedDeviation(wind_speed_devation)
+
         
 
     % run simulation
@@ -64,31 +70,44 @@ for I = 1:nSims
 
 
     %limit data range
-    data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("BURNOUT"), "openleft");
-    data = data(data_range, :);
+    data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("APOGEE"), "openleft");
+    data       = data(data_range, :);
+    
+–
+    % 1) narrow to between LAUNCHROD and APOGEE
+    data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("APOGEE"), "openleft");
+    data       = data(data_range, :);
+    
+    % 2) grab the event times directly from the filtered table
+    launchTimes = data(eventfilter("LAUNCHROD"), :).Time;
+    burnTimes   = data(eventfilter("BURNOUT"),  :).Time;
+    
+    t_launch = launchTimes(1);        % first rod‑off sample
+    t_burn   = burnTimes(end);        % last burnout sample
+    
+    % 3) build a 3 s post‑burn timerange and extract
+    tr = timerange(t_burn, t_burn + seconds(3), "open");
+    data_burnout_plus3 = data(tr, :);
+
             
     % collect interesting information
     stabilityMargin = data{:, 'Stability margin'};
+    rawaoa = data_burnout_plus3.("Angle of attack");
+    aoa_clean = cleanAOA(time_step,rawaoa);
+    data_aoa{I} = aoa_clean;  
     data_stabilityOffRod (1,I) = data{1, 'Stability margin'};
 
     % compute settling time & overshoot
-    aoa_rad       = data.("Angle of attack");
+    aoa_rad       = data_burnout_plus3.("Angle of attack");
     aoa_deg  = rad2deg(aoa_rad);
 
     initial_val = aoa_deg(1);
-    final_val   = 0;         
-    tol         = 0.05;
+    final_val   = 0;             
     thresh      = final_val + tol*initial_val
+    data_settle_threshold (I) = thresh;
     
-    i_over = find(aoa_deg > tol*initial_val, 1, "last")
-    settle_time = seconds(data.Time(i_over+1))
-    % Scan forward until aoa stays within ±tol band around final_val
-    for k = 1:height(aoa_deg)
-        if aoa_deg(k,1)<= tol*initial_val 
-            settle_time = seconds(data.Time(k,1))
-            break
-        end
-    end
+    i_over = find(aoa_deg > thresh, 1, "last");
+    settle_time = seconds(data.Time(i_over))
 
 
     overshoot = computeOvershoot(aoa_deg);
@@ -261,7 +280,34 @@ function overshoot = computeOvershoot(A_array)
 end
 
 
+function A_signed = cleanAOA(dt, aoa_rad)
+% CLEANAOA  Undo the “bounce” in an absolute AOA trace.
+%   A_signed = cleanAOA(dt, aoa_rad)
+%   (dt is unused here but kept for API compatibility)
 
+    zero_thresh_deg = 0.1;
 
+    % convert to degrees
+    A_abs = rad2deg(aoa_rad);    % this is 150×1
+
+    % find “valley” points
+    prom   = max(zero_thresh_deg/2, 1e-4);
+    [~, v] = findpeaks(-A_abs, 'MinPeakProminence', prom);
+    v      = sort(v(:)');
+
+    % build sign vector with the same shape as A_abs
+    signVec = ones(size(A_abs));  % now also 150×1
+    s       = 1;
+    last    = 1;
+    for idx = v
+        signVec(last:idx) = s;
+        s                 = -s;
+        last              = idx+1;
+    end
+    signVec(last:end) = s;
+
+    % element‑wise multiply
+    A_signed = signVec .* A_abs;  % still 150×1
+end
 
 

@@ -2,9 +2,9 @@ close all;
 %% Visualization 
 % settle time vs wind speed.
 figure;
-scatter(data_wind_speeds,data_settle_time)
+scatter(data_wind_speeds,data_overshoot)
 xlabel('Wind speed [m/s]')
-ylabel('Settle time')
+ylabel('Overshoot')
 
 figure;
 tiledlayout(2,1)

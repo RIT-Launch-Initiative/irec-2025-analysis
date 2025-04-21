@@ -1,0 +1,15 @@
+figure;
+scatter(data_wind_speeds,data_settle_time)
+
+figure; 
+hold on
+for i = 1:numel(data_aoa)
+    plot(data_aoa{i})    
+end
+hold off
+xlabel('Time step index')
+ylabel('Angle of attack (rad)')
+yline 
+title('AOA time‐histories for all sims')
+
+average_settle = mean(data_settle_time)

@@ -1,21 +1,19 @@
-tiledlayout(2,1)
-nexttile;
-histogram(data_stabilityOffRod);
-xlabel('Stability off the rod [cal]')
-fontsize(16,"points")
+figure;
+scatter(data_wind_speeds,data_settle_time)
 
-xlabel('Stability (body calibers)'); %xlabel function
-xline(1.5, 'k--', 'MIN STAB', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-fontsize(16,"points");
+figure; 
+hold on
+for i = 1:numel(data_aoa)
+    plot(data_aoa{i})    
+end
+hold off
+average_th = mean(data_settle_threshold);
 
-nexttile;
-histogram(data_apogee);
-xline(11000, 'k--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-xline(10000, 'k--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-xline(9000, 'k--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-xlim([8500 12500])
-xlabel('Apogee [ft]')
+xlabel('Time ms')
+ylabel('Angle of attack (deg)')
+xline(158,'-','BURNOUT');
+xline(0,'-','LAUNCHROD');
+yr = yregion(-average_th,average_th,FaceColor="g",EdgeColor=[0.4 0 0.7]);
+title('AOA over time')
 
-fontsize(16,"points")
-ax = gca; % axes handle
-ax.XAxis.Exponent = 0;
+average_settle = mean(data_settle_time)
