@@ -16,22 +16,32 @@ close all;
 figure; 
 hold on
 
+
+
 averageaoa=mean(data_aoa,2);
+[~, mn] = min(mean(data_aoa,1));  [~, mx] = max(mean(data_aoa,1));      % get column indices
+plot([averageaoa, data_aoa(:,mn), data_aoa(:,mx)]);
 
 
-plot(averageaoa);
 
 hold off
 average_th = mean(data_settle_threshold);
 
 xlabel('Time (ms)')
 ylabel('Angle of attack (deg)')
+
 xline(158,'-','BURNOUT');
 xl = xline(0,'-','LAUNCHROD');
 xl.LabelHorizontalAlignment = 'left';
+yl=yline(average_th,'-',"AVG. 10% THRESHOLD");
+yl.LabelVerticalAlignment ='top';
+yl.LabelHorizontalAlignment = "center";
 yr = yregion(-average_th,average_th,FaceColor="g",EdgeColor=[0.4 0 0.7]);
 axis padded;
-title('AOA through monte carlo')
+title('AOA of average, best and worst case')
 fontsize(16,'points');
 
+legend('Average','MIN AOA','MAX AOA','Location','best');
 average_settle = mean(data_settle_time)
+
+average_overshoot = mean(data_overshoot)

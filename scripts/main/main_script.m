@@ -18,7 +18,7 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+nSims = 150; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
 wind_speed = 6.7; %m/s
 wind_speed_spread = 2; % m/s
 wind_speed_devation = (wind_speed/10);
