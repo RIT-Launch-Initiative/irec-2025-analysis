@@ -18,16 +18,16 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 250; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
 wind_speed = 6.7; %m/s
-wind_speed_spread = 1; % m/s
+wind_speed_spread = 2; % m/s
 wind_speed_devation = (wind_speed/10);
 wind_direction = 45;
 temp_spread = 20; % c
 temp = opts.getLaunchTemperature;
 wind_direction_spread = 360;
-time_step = 0.01;
-turb = 0.1;
+time_step = 0.025;
+turb = 0.15;
 tol         = 0.1;
 
 %conversion factors
@@ -44,7 +44,10 @@ data_apogee = zeros(1,nSims);
 data_time_to_stab = zeros(1,nSims);
 data_settle_time = zeros(1,nSims);
 data_overshoot      = zeros(1, nSims);
-data_aoa = cell(nSims,1);
+t_burn = 1.736;
+t_launch = 0.255;
+tsteps = (3+t_burn-t_launch)/time_step;
+data_aoa = zeros((ceil(tsteps)),nSims);
 data_settle_threshold = zeros(nSims,1);
 
 
@@ -86,7 +89,7 @@ for I = 1:nSims
     stabilityMargin = data{:, 'Stability margin'};
     rawaoa = data_burnout_plus3.("Angle of attack");
     aoa_clean = cleanAOA(time_step,rawaoa);
-    data_aoa{I} = aoa_clean;  
+    data_aoa (:,I) = aoa_clean;  
     data_stabilityOffRod (1,I) = data{1, 'Stability margin'};
 
     % compute settling time & overshoot
