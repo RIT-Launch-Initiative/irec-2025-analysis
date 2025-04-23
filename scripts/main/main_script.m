@@ -1,4 +1,4 @@
-% This script will collect all of the data in various scripts for you and
+3`2% This script will collect all of the data in various scripts for you and
 % collect it
 close all;clear; 
 
