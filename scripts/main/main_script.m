@@ -19,10 +19,10 @@ opts = sim.getOptions();
 
 %Monte carlo variables
 nSims = 150; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-wind_speed = 6.7; %m/s
-wind_speed_spread = 2; % m/s
+wind_speed = 4.47; %m/s
+wind_speed_spread = 4.47; % m/s
 wind_speed_devation = (wind_speed/10);
-wind_direction = 45;
+wind_direction = 180;
 temp_spread = 20; % c
 temp = opts.getLaunchTemperature;
 wind_direction_spread = 360;
@@ -49,6 +49,7 @@ t_launch = 0.255;
 tsteps = (3+t_burn-t_launch)/time_step;
 data_aoa = zeros((ceil(tsteps)),nSims);
 data_settle_threshold = zeros(nSims,1);
+data_pitch_moment = zeros((ceil(tsteps)),nSims);
 
 
 
@@ -65,7 +66,7 @@ for I = 1:nSims
     opts.setTimeStep(time_step)
     opts.setWindSpeedDeviation(wind_speed_devation)
 
-        
+
 
     % run simulation
     data = openrocket.simulate(sim, outputs = "ALL");
@@ -76,17 +77,18 @@ for I = 1:nSims
     data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("APOGEE"), "openleft");
     launchRow = eventfilter("LAUNCHROD");
     burnRow = eventfilter("BURNOUT"); 
-    
+
     t_launch = data.Time(launchRow);
     t_burn = data.Time(burnRow);
     tr = timerange(t_launch, t_burn + seconds(3), "open");
 
     data = data(data_range, :);
     data_burnout_plus3 = data(tr, :);
-    
-            
+
+
     % collect interesting information
     stabilityMargin = data{:, 'Stability margin'};
+    data_pitch_moment (:,I) = data_burnout_plus3{:,"Pitch moment coefficient"};
     rawaoa = data_burnout_plus3.("Angle of attack");
     aoa_clean = cleanAOA(time_step,rawaoa);
     data_aoa (:,I) = aoa_clean;  
@@ -98,11 +100,11 @@ for I = 1:nSims
 
     initial_val = aoa_deg(1);
     final_val   = 0;             
-    thresh      = final_val + tol*initial_val
+    thresh      = final_val + tol*initial_val;
     data_settle_threshold (I) = thresh;
-    
+
     i_over = find(aoa_deg > thresh, 1, "last");
-    settle_time = seconds(data.Time(i_over))
+    settle_time = seconds(data.Time(i_over));
 
 
     overshoot = computeOvershoot(aoa_deg);
@@ -136,6 +138,16 @@ for I = 1:nSims
     disp(I)
 
 end
+
+% specify output file
+outFile = fullfile(pwd, "simulation_results.xlsx");
+
+% call the exporter
+exportResultsToExcel(outFile, ...
+    data_wind_speeds, data_temp, data_wind_direciton, ...
+    data_apogee, data_stabilityOffRod, data_time_to_stab, ...
+    data_settle_time, data_overshoot, data_settle_threshold, ...
+    data_aoa, time_step);
 
 %convert MKS to mph,C
 data_apogee = data_apogee*meterTofoot;
@@ -306,3 +318,24 @@ function A_signed = cleanAOA(dt, aoa_rad)
 end
 
 
+
+%% –– function definition ––
+function exportResultsToExcel(filename, windSpd, temp, windDir, apogee, stabOffRod, tToStab, tSettle, overshoot, thresh, aoaMat, dt)
+    n = numel(windSpd);
+    sims = (1:n)';
+    
+    % build summary table
+    T = table(sims, windSpd(:), temp(:), windDir(:), apogee(:), ...
+              stabOffRod(:), tToStab(:), tSettle(:), overshoot(:), thresh(:), ...
+              'VariableNames', { ...
+                'Sim','WindSpeed_mps','Temperature_C','WindDir_deg', ...
+                'Apogee_ft','StabilityOffRod_cal','TimeTo1p5_cal_s', ...
+                'SettleTime_s','Overshoot_pct','SettleThreshold_deg'});
+    writetable(T, filename, 'Sheet', 'Summary');
+    
+    % time vector for AOA series
+    tVec = (0:size(aoaMat,1)-1)' * dt;
+    A = array2table(aoaMat, 'VariableNames', compose("Sim%02d", 1:n));
+    A = addvars(A, tVec, 'Before', 1, 'NewVariableNames', 'Time_s');
+    writetable(A, filename, 'Sheet', 'AOA');
+end

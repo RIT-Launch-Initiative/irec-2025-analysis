@@ -13,16 +13,18 @@ close all;
 % scatter(data_wind_direciton,data_overshoot)
 % title('wind direction vs overshoot')
 
+figure;
+plot(data_aoa,data_pitch_moment)
+
+ylabel('Pitch moment coef')
+xlabel('Angle of attack (deg)')
+
 figure; 
 hold on
-
-
 
 averageaoa=mean(data_aoa,2);
 [~, mn] = min(mean(data_aoa,1));  [~, mx] = max(mean(data_aoa,1));      % get column indices
 plot([averageaoa, data_aoa(:,mn), data_aoa(:,mx)]);
-
-
 
 hold off
 average_th = mean(data_settle_threshold);
