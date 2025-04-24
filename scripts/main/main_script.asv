@@ -1,143 +1,200 @@
-% % This script will collect all of the data in various scripts for you and
-% % collect it
-% close all;clear; 
-% 
-% 
-% addpath(genpath("C:\\lmatlib"))
-% addpath(genpath("C:\lmatlib\sim"));
-% 
-% % open rocket integration intitialize 
-% otis_path = "C:\\irec-2025-analysis\\IREC_2025_M6000ST-0.ork";
-% otis = openrocket(otis_path);
-% sim = otis.sims("15MPH-TEXAS-36C-(TYP)"); %from openrocket
-% if ~isfile(otis_path)
-%     error("No document '%s' found. Ensure the path is correct.", otis_path);
-% end
-% 
-% % open rocket integration config
-% opts = sim.getOptions();
-% 
-% %Monte carlo variables
-% nSims = 150; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
-% wind_speed = 4.47; %m/s
-% wind_speed_spread = 4.47; % m/s
-% wind_speed_devation = (wind_speed/10);
-% wind_direction = 180;
-% temp_spread = 20; % c
-% temp = opts.getLaunchTemperature;
-% wind_direction_spread = 360;
-% time_step = 0.025;
-% turb = 0.15;
-% tol         = 0.1;
-% 
-% %conversion factors
-% m_sTOmph = 2.237136;
-% meterTofoot = 3.28084;
-% sTomS = 1/1000;
-% 
-% %initialize 
-% data_stabilityOffRod = zeros(1, nSims);
-% data_wind_speeds = zeros(1,nSims);
-% data_temp = zeros(1,nSims);
-% data_wind_direciton = zeros(1,nSims);
-% data_apogee = zeros(1,nSims);
-% data_time_to_stab = zeros(1,nSims);
-% data_settle_time = zeros(1,nSims);
-% data_overshoot      = zeros(1, nSims);
-% t_burn = 1.736;
-% t_launch = 0.255;
-% tsteps = (3+t_burn-t_launch)/time_step;
-% data_aoa = zeros((ceil(tsteps)),nSims);
-% data_settle_threshold = zeros(nSims,1);
-% data_pitch_moment = zeros((ceil(tsteps)),nSims);
-% 
-% 
-% 
-% 
-% for I = 1:nSims
-% 
-%     % set randomized sim variable
-%     opts.setLaunchIntoWind(false);
-%     wind_dir = wind_direction+(rand()-0.5)*wind_direction_spread;
-%     opts.setWindDirection(wind_dir);  
-%     opts.setWindTurbulenceIntensity(turb)
-%     opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
-%     opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
-%     opts.setTimeStep(time_step)
-%     opts.setWindSpeedDeviation(wind_speed_devation)
-% 
-% 
-% 
-%     % run simulation
-%     data = openrocket.simulate(sim, outputs = "ALL");
-%     data_apogee(1,I) = max(data.Altitude);
-% 
-% 
-%     %limit data range
-%     data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("APOGEE"), "openleft");
-%     launchRow = eventfilter("LAUNCHROD");
-%     burnRow = eventfilter("BURNOUT"); 
-% 
-%     t_launch = data.Time(launchRow);
-%     t_burn = data.Time(burnRow);
-%     tr = timerange(t_launch, t_burn + seconds(3), "open");
-% 
-%     data = data(data_range, :);
-%     data_burnout_plus3 = data(tr, :);
-% 
-% 
-%     % collect interesting information
-%     stabilityMargin = data{:, 'Stability margin'};
-%     data_pitch_moment (:,I) = data_burnout_plus3{:,"Pitch moment coefficient"};
-%     rawaoa = data_burnout_plus3.("Angle of attack");
-%     aoa_clean = cleanAOA(time_step,rawaoa);
-%     data_aoa (:,I) = aoa_clean;  
-%     data_stabilityOffRod (1,I) = data{1, 'Stability margin'};
-% 
-%     % compute settling time & overshoot
-%     aoa_rad       = data_burnout_plus3.("Angle of attack");
-%     aoa_deg  = rad2deg(aoa_rad);
-% 
-%     initial_val = aoa_deg(1);
-%     final_val   = 0;             
-%     thresh      = final_val + tol*initial_val;
-%     data_settle_threshold (I) = thresh;
-% 
-%     i_over = find(aoa_deg > thresh, 1, "last");
-%     settle_time = seconds(data.Time(i_over));
-% 
-% 
-%     overshoot = computeOvershoot(aoa_deg);
-% 
-%     data_settle_time(I) = settle_time;
-%     data_overshoot(I)   = overshoot;
-% 
-%     % time to stability 1.5 data
-%     if data_stabilityOffRod(1,I) >= 1.5
-%         data_time_to_stab(1,I) = 0;
-%     else
-%         % Define the subarray starting at index 127
-%         marginSubarray = stabilityMargin(1:end);
-%         timeSubarray = seconds(data.Time(1:end));
-% 
-%         if any(marginSubarray >= 1.5)% Find the index range where stabilityMargin crosses 1.5
-%             % Use interp1 to find the exact time where stabilityMargin reaches 1.5
-%             data_time_to_stab(1,I) = (interp1(marginSubarray, timeSubarray, 1.5))-(timeSubarray(1,1));
-%         else
-%             data_time_to_stab(1,I) = NaN;  % No stability achieved
-%         end    
-%     end
-% 
-%     % save data
-%     data_wind_speeds(1,I) = data{1,"Wind velocity"};
-%     data_temp(1,I) = data{1,"Air temperature"};
-%     data_wind_direciton(1,I) = wind_dir;
-% 
-%     % randomize and display
-%     opts.randomizeSeed    
-%     disp(I)
-% 
-% end
+% This script will collect all of the data in various scripts for you and
+% collect it
+close all;clear; 
+
+
+addpath(genpath("C:\\lmatlib"))
+addpath(genpath("C:\lmatlib\sim"));
+
+% open rocket integration intitialize 
+otis_path = "C:\\irec-2025-analysis\\IREC_2025_M6000ST-0.ork";
+otis = openrocket(otis_path);
+sim = otis.sims("15MPH-TEXAS-36C-(TYP)"); %from openrocket
+if ~isfile(otis_path)
+    error("No document '%s' found. Ensure the path is correct.", otis_path);
+end
+
+% open rocket integration config
+opts = sim.getOptions();
+
+%Monte carlo variables
+nSims = 150; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+wind_speed = 4.47; %m/s
+wind_speed_spread = 4.47; % m/s
+wind_speed_devation = (wind_speed/10);
+wind_direction = 180;
+temp_spread = 20; % c
+temp = opts.getLaunchTemperature;
+wind_direction_spread = 360;
+time_step = 0.025;
+turb = 0.15;
+tol         = 0.1;
+
+%conversion factors
+m_sTOmph = 2.237136;
+meterTofoot = 3.28084;
+sTomS = 1/1000;
+
+%initialize 
+data_stabilityOffRod = zeros(1, nSims);
+data_wind_speeds = zeros(1,nSims);
+data_temp = zeros(1,nSims);
+data_wind_direciton = zeros(1,nSims);
+data_apogee = zeros(1,nSims);
+data_time_to_stab = zeros(1,nSims);
+data_settle_time = zeros(1,nSims);
+data_overshoot      = zeros(1, nSims);
+t_burn = 1.736;
+t_launch = 0.255;
+tsteps = (3+t_burn-t_launch)/time_step;
+data_aoa = zeros((ceil(tsteps)),nSims);
+data_settle_threshold = zeros(nSims,1);
+data_pitch_moment = zeros((ceil(tsteps)),nSims);
+
+
+NoseWeight = otis.component(name="Adjustable stability weight");
+if isempty(NoseWeight)
+    error("Could not find component named 'Adjustable stability weight'.");
+end
+
+%% PARAMETER SWEEPS — EDIT THESE RANGES AS DESIRED
+noseMassVals = 1:0.25:5;    % kg  (row‑axis)
+windVals     = 0:1:15;      % m/s (column‑axis) – steady average wind
+
+nM = numel(noseMassVals);
+nW = numel(windVals);
+
+apogeeMat_m  = zeros(nM, nW);   % apogee in metres
+
+%% MAIN DOUBLE LOOP
+for iM = 1:nM
+    % Set nose‑cone mass for this *row*
+    NoseWeight.setOverrideMass( noseMassVals(iM) );
+
+    for jW = 1:nW
+        % For each wind speed, spin up a fresh copy of the sim so that any
+        % internal state is reset
+        sim  = otis.sims(sim);
+        opts = sim.getOptions();
+        opts.setWindSpeedAverage( windVals(jW) );
+        opts.setWindSpeedDeviation( 0 );          % deterministic
+        opts.setLaunchIntoWind(false);
+        opts.setTimeStep(0.025);
+
+        % Run & grab data
+        data = openrocket.simulate(sim, outputs="Altitude,Time");
+
+        % Save peak altitude (metres)
+        apogeeMat_m(iM,jW) = max(data.Altitude);
+    end
+    fprintf("%d / %d nose‑mass rows done...\n", iM, nM);
+end
+
+%% POST‑PROCESS & PLOT
+m2ft = 3.28084;
+apogeeMat_ft = apogeeMat_m * m2ft;
+
+[W,M] = meshgrid(windVals, noseMassVals);   % match matrix dims
+figure('Color','w');
+contourf(W, M, apogeeMat_ft, 20, 'LineColor','none');
+colormap(parula);
+colorbar; c = colorbar; ylabel(c,'Apogee [ft]');
+xlabel('Wind Speed [m/s]'); ylabel('Nose‑Cone Mass [kg]');
+set(gca,'FontSize',12);
+
+title('Apogee vs Nose‑Cone Mass & Wind Speed');
+
+%% OPTIONAL: Add target bands
+hold on;
+% Example 10 000 ft ±10 % targets
+yline(0,'w'); % dummy so 'hold on' shows legend later if wanted
+% contourcbar etc. if desired
+hold off;
+
+for I = 1:nSims
+
+    % set randomized sim variable
+    opts.setLaunchIntoWind(false);
+    wind_dir = wind_direction+(rand()-0.5)*wind_direction_spread;
+    opts.setWindDirection(wind_dir);  
+    opts.setWindTurbulenceIntensity(turb)
+    opts.setWindSpeedAverage(wind_speed + (rand()-0.5)*wind_speed_spread);
+    opts.setLaunchTemperature(temp + (rand()-0.5)*temp_spread);
+    opts.setTimeStep(time_step)
+    opts.setWindSpeedDeviation(wind_speed_devation)
+
+
+
+    % run simulation
+    data = openrocket.simulate(sim, outputs = "ALL");
+    data_apogee(1,I) = max(data.Altitude);
+
+
+    %limit data range
+    data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("APOGEE"), "openleft");
+    launchRow = eventfilter("LAUNCHROD");
+    burnRow = eventfilter("BURNOUT"); 
+
+    t_launch = data.Time(launchRow);
+    t_burn = data.Time(burnRow);
+    tr = timerange(t_launch, t_burn + seconds(3), "open");
+
+    data = data(data_range, :);
+    data_burnout_plus3 = data(tr, :);
+
+
+    % collect interesting information
+    stabilityMargin = data{:, 'Stability margin'};
+    data_pitch_moment (:,I) = data_burnout_plus3{:,"Pitch moment coefficient"};
+    rawaoa = data_burnout_plus3.("Angle of attack");
+    aoa_clean = cleanAOA(time_step,rawaoa);
+    data_aoa (:,I) = aoa_clean;  
+    data_stabilityOffRod (1,I) = data{1, 'Stability margin'};
+
+    % compute settling time & overshoot
+    aoa_rad       = data_burnout_plus3.("Angle of attack");
+    aoa_deg  = rad2deg(aoa_rad);
+
+    initial_val = aoa_deg(1);
+    final_val   = 0;             
+    thresh      = final_val + tol*initial_val;
+    data_settle_threshold (I) = thresh;
+
+    i_over = find(aoa_deg > thresh, 1, "last");
+    settle_time = seconds(data.Time(i_over));
+
+
+    overshoot = computeOvershoot(aoa_deg);
+
+    data_settle_time(I) = settle_time;
+    data_overshoot(I)   = overshoot;
+
+    % time to stability 1.5 data
+    if data_stabilityOffRod(1,I) >= 1.5
+        data_time_to_stab(1,I) = 0;
+    else
+        % Define the subarray starting at index 127
+        marginSubarray = stabilityMargin(1:end);
+        timeSubarray = seconds(data.Time(1:end));
+
+        if any(marginSubarray >= 1.5)% Find the index range where stabilityMargin crosses 1.5
+            % Use interp1 to find the exact time where stabilityMargin reaches 1.5
+            data_time_to_stab(1,I) = (interp1(marginSubarray, timeSubarray, 1.5))-(timeSubarray(1,1));
+        else
+            data_time_to_stab(1,I) = NaN;  % No stability achieved
+        end    
+    end
+
+    % save data
+    data_wind_speeds(1,I) = data{1,"Wind velocity"};
+    data_temp(1,I) = data{1,"Air temperature"};
+    data_wind_direciton(1,I) = wind_dir;
+
+    % randomize and display
+    opts.randomizeSeed    
+    disp(I)
+
+end
 
 % specify output file
 outFile = fullfile(pwd, "simulation_results.xlsx");

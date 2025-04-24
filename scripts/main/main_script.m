@@ -1,4 +1,4 @@
-3`2% This script will collect all of the data in various scripts for you and
+% This script will collect all of the data in various scripts for you and
 % collect it
 close all;clear; 
 
@@ -52,6 +52,47 @@ data_settle_threshold = zeros(nSims,1);
 data_pitch_moment = zeros((ceil(tsteps)),nSims);
 
 
+NoseWeight = otis.component(name="Adjustable stability weight");
+if isempty(NoseWeight)
+    error("Could not find component named 'Adjustable stability weight'.");
+end
+
+%% PARAMETER SWEEPS — EDIT THESE RANGES AS DESIRED
+noseMassVals = 1:0.25:5;    % kg  (row‑axis)
+windVals     = 0:1:15;      % m/s (column‑axis) – steady average wind
+
+nM = numel(noseMassVals);
+nW = numel(windVals);
+
+apogeeMat_m  = zeros(nM, nW);   % apogee in metres
+
+%% MAIN DOUBLE LOOP
+for iM = 1:nM
+    % Set nose‑cone mass for this *row*
+    NoseWeight.setOverrideMass( noseMassVals(iM) );
+
+    for jW = 1:nW
+        % For each wind speed, spin up a fresh copy of the sim so that any
+        % internal state is reset
+        sim1  = otis.sims("15MPH-TEXAS-36C-(TYP)");
+        opts = sim1.getOptions();
+        opts.setWindSpeedAverage( windVals(jW) );
+        opts.setWindSpeedDeviation( 0 );          % deterministic
+        opts.setLaunchIntoWind(false);
+        opts.setTimeStep(0.025);
+
+        % Run & grab data
+        data = openrocket.simulate(sim, outputs = "ALL");
+
+        % Save peak altitude (metres)
+        apogeeMat_m(iM,jW) = max(data.Altitude);
+    end
+    fprintf("%d / %d nose‑mass rows done...\n", iM, nM);
+end
+
+%% POST‑PROCESS & PLOT
+m2ft = 3.28084;
+apogeeMat_ft = apogeeMat_m * m2ft;
 
 
 for I = 1:nSims
