@@ -18,7 +18,7 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 150; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
 wind_speed = 4.47; %m/s
 wind_speed_spread = 4.47; % m/s
 wind_speed_devation = (wind_speed/10);
@@ -46,57 +46,10 @@ data_settle_time = zeros(1,nSims);
 data_overshoot      = zeros(1, nSims);
 t_burn = 1.736;
 t_launch = 0.255;
-tsteps = (3+t_burn-t_launch)/time_step;
+tsteps = 1+(3+t_burn-t_launch)/time_step;
 data_aoa = zeros((ceil(tsteps)),nSims);
 data_settle_threshold = zeros(nSims,1);
 data_pitch_moment = zeros((ceil(tsteps)),nSims);
-
-
-NoseWeight = otis.component(name="Adjustable stability weight");
-if isempty(NoseWeight)
-    error("Could not find component named 'Adjustable stability weight'.");
-end
-
-%% PARAMETER SWEEPS — EDIT THESE RANGES AS DESIRED
-noseMassVals = 1:0.25:5;    % kg  (row‑axis)
-windVals     = 0:1:15;      % m/s (column‑axis) – steady average wind
-
-nM = numel(noseMassVals);
-nW = numel(windVals);
-
-apogeeMat_m  = zeros(nM, nW);   % apogee in metres
-
-%% MAIN DOUBLE LOOP
-for iM = 1:nM
-    % Set nose‑cone mass for this *row*
-    NoseWeight.setOverrideMass( noseMassVals(iM) );
-    NoseWeight.getOverrideMass
-    NoseWeight.getComponentMass
-    NoseWeight.set  
-    NoseWeight.get
-
-    for jW = 1:nW
-        % For each wind speed, spin up a fresh copy of the sim so that any
-        % internal state is reset
-        sim1  = otis.sims("15MPH-TEXAS-36C-(TYP)");
-        opts = sim1.getOptions();
-        opts.setWindSpeedAverage( windVals(jW) );
-        opts.setWindSpeedDeviation( 0 );          % deterministic
-        opts.setLaunchIntoWind(false);
-        opts.setTimeStep(0.025);
-
-        % Run & grab data
-        data = openrocket.simulate(sim, outputs = "ALL");
-
-        % Save peak altitude (metres)
-        apogeeMat_m(iM,jW) = max(data.Altitude);
-    end
-    fprintf("%d / %d nose‑mass rows done...\n", iM, nM);
-end
-
-%% POST‑PROCESS & PLOT
-m2ft = 3.28084;
-apogeeMat_ft = apogeeMat_m * m2ft;
 
 
 for I = 1:nSims
@@ -133,7 +86,7 @@ for I = 1:nSims
 
     % collect interesting information
     stabilityMargin = data{:, 'Stability margin'};
-    data_pitch_moment (:,I) = data_burnout_plus3{:,"Pitch moment coefficient"};
+  
     rawaoa = data_burnout_plus3.("Angle of attack");
     aoa_clean = cleanAOA(time_step,rawaoa);
     data_aoa (:,I) = aoa_clean;  
@@ -189,7 +142,7 @@ outFile = fullfile(pwd, "simulation_results.xlsx");
 
 % call the exporter
 exportResultsToExcel(outFile, ...
-    data_wind_speeds, data_temp, data_wind_direciton, ...
+    data_wind_speeds, data_temp-273.15, data_wind_direciton, ...
     data_apogee, data_stabilityOffRod, data_time_to_stab, ...
     data_settle_time, data_overshoot, data_settle_threshold, ...
     data_aoa, time_step);
