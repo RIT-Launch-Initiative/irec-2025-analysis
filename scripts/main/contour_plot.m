@@ -37,6 +37,7 @@ for iM = 1:nM
     for jW = 1:nW
         sim  = otis.sims(simName);
         opts = sim.getOptions();
+        opts.setLa
         opts.setWindSpeedAverage( windVals(jW) );
         opts.setWindSpeedDeviation( 0 );          % deterministic
         opts.setLaunchIntoWind(false);

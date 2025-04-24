@@ -88,7 +88,7 @@ grid(ax, 'on');
 
 xlabel(ax, 'Wind Vel. [m/s]');
 ylabel(ax, 'Mass [kg]');
-title(ax, 'Apogee [ft AGL] | RIT-OTIS | MIDLAND TEXAS');
+title(ax, 'Apogee [ft AGL] | RIT-OTIS | MIDLAND');
 
 % Colour‑bar
 cb = colorbar(ax);

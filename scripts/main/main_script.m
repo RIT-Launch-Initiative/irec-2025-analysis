@@ -70,6 +70,10 @@ apogeeMat_m  = zeros(nM, nW);   % apogee in metres
 for iM = 1:nM
     % Set nose‑cone mass for this *row*
     NoseWeight.setOverrideMass( noseMassVals(iM) );
+    NoseWeight.getOverrideMass
+    NoseWeight.getComponentMass
+    NoseWeight.set  
+    NoseWeight.get
 
     for jW = 1:nW
         % For each wind speed, spin up a fresh copy of the sim so that any
