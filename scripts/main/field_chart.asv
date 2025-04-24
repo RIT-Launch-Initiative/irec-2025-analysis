@@ -7,14 +7,14 @@ addpath(genpath("C:\lmatlib"));
 addpath(genpath("C:\lmatlib\sim"));
 
 % Sweep ranges (edit as needed)
-tempVals_C    = 15  : 1 : 30;    % °C
-windVals_mph  = 5  : 1 : 20;    % mph
-noseMin_kg    = 2;              % lower mass bound
-noseMax_kg    = 6;              % upper mass bound
+tempVals_C    = 10  : 1 : 20;    % °C
+windVals_mph  = 0  : 1 : 15;    % mph
+noseMin_kg    = 1;              % lower mass bound
+noseMax_kg    = 5;              % upper mass bound
 targetApogee_ft = 10150;        % desired apogee
 
 % Root-finder settings
-tol_ft  = 50;      % stop when |apogee-target| < tol_ft
+tol_ft  = 25;      % stop when |apogee-target| < tol_ft
 maxIter = 20;      % bisection iterations
 
 %% ── CONSTANTS & PRE-ALLOCATIONS ──────────────────────────────────────────
@@ -96,11 +96,16 @@ ylabel('Ambient temperature [°C]');
 cb = colorbar; cb.Label.String = 'Required nose mass [kg]';
 title(sprintf('Mass required for %.0f ft AGL — 0.1 kg resolution', targetApogee_ft));
 
+%% ── OPTIONAL SAVES ───────────────────────────────────────────────────────
+% exportgraphics(fig, 'mass_sizing_chart.png', 'Resolution', 300);
+% save('massChart.mat', 'massChart_kg', 'tempVals_C', 'windVals_mph');
+
 %% ── LOCAL FUNCTION -------------------------------------------------------
 function diff = apogeeDiff(mass_kg, T_K, W_ms, ft2m, target_ft, otis, NoseWeight, simName)
     % Adjust component mass
     NoseWeight.setOverrideMass(mass_kg);
     NoseWeight.setComponentMass(mass_kg);
+    NoseWeight.setMassOverridden(mass_kg);
 
     % Fetch fresh sim handle each call (OpenRocket limitation)
     sim  = otis.sims(simName);
@@ -118,13 +123,3 @@ function diff = apogeeDiff(mass_kg, T_K, W_ms, ft2m, target_ft, otis, NoseWeight
     % Residual: positive if we overshoot target
     diff = apogee_ft - target_ft;
 end
-
-%% ── LOOK-UP TABLE --------------------------------------------------------
-rowNames = compose('%d°C', tempVals_C);          % table rows
-colNames = compose('%d_mph', windVals_mph);      % valid var names
-Lookup = array2table(massChart_kg, ...
-                     'RowNames', rowNames, ...
-                     'VariableNames', matlab.lang.makeValidName(colNames));
-
-disp('Required nose-mass [kg]  (rows = °C, cols = mph)');
-disp(Lookup);

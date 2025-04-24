@@ -7,8 +7,8 @@ addpath(genpath("C:\lmatlib"));
 addpath(genpath("C:\lmatlib\sim"));
 
 % Sweep ranges (edit resolution to taste)
-noseMassVals = 2 : 0.2 : 6;      % kg  
-windVals     = 0   : 1    : 9 ;       % m/s 
+noseMassVals = 3 : 0.25 : 5.5;      % kg  
+windVals     = 2   : 1    : 8 ;       % m/s 
 
 %% ── CONSTANTS & PRE‑ALLOCATIONS ───────────────────────────────────────────
 m2ft   = 3.28084;       % metres  → feet
@@ -37,7 +37,6 @@ for iM = 1:nM
     for jW = 1:nW
         sim  = otis.sims(simName);
         opts = sim.getOptions();
-        opts.setLa
         opts.setWindSpeedAverage( windVals(jW) );
         opts.setWindSpeedDeviation( 0 );          % deterministic
         opts.setLaunchIntoWind(false);
@@ -56,9 +55,10 @@ Y_lb  = noseMassVals;
 [X,Y] = meshgrid(X_fts, Y_lb);        % expand so size(Z) == size(X)==size(Y)
 
 %% ── CONTOUR LEVELS ────────────────────────────────────────────────────────
-zMin = floor(min(Z_ft(:))/250)*250;
-zMax = ceil( max(Z_ft(:))/250)*250;
-levels = zMin : 250 : zMax;           % 250‑ft intervals
+clevel = 100;
+zMin = floor(min(Z_ft(:))/clevel)*clevel;
+zMax = ceil( max(Z_ft(:))/clevel)*clevel;
+levels = zMin : clevel : zMax;           % 250‑ft intervals
 
 %% ── PLOTTING WITH *contour* (X, Y, Z) ─────────────────────────────────────
 fig = figure('Color','w');
@@ -66,7 +66,7 @@ ax  = axes(fig);
 
 % Use filled contours for background shading (optional aesthetic)
 contourf(ax, X, Y, Z_ft, levels, 'LineColor','none');
-colormap(ax, parula);
+colormap(ax, "autumn");% jet or off map colors
 hold(ax, 'on');
 
 % Overlay line contours (+ labels) using the same X,Y,Z syntax
@@ -89,7 +89,7 @@ grid(ax, 'on');
 
 xlabel(ax, 'Wind Vel. [m/s]');
 ylabel(ax, 'Mass [kg]');
-title(ax, 'Apogee [ft AGL] | RIT-OTIS | MIDLAND TEXAS');
+title(ax, 'Apogee [ft AGL] | RIT-OTIS | MIDLAND TEXAS | 27C ');
 
 % Colour‑bar
 cb = colorbar(ax);
@@ -99,3 +99,26 @@ cb.Ticks = levels(1:2:end);   % every other tick to declutter
 %% ── OPTIONAL SAVES ────────────────────────────────────────────────────────
 % exportgraphics(fig, 'apogee_contour.png', 'Resolution', 300);
 % save('apogeeMatrix.mat', 'Z_ft', 'X_fts', 'Y_lb');
+
+function cmap = redGreenRed(n)
+    if nargin==0, n = 256; end          % fallback length
+    half   = floor(n/2);               % samples on each side of the centre
+    centre = n - 2*half;               % 1 if n is odd, 0 if even
+
+    % red→green
+    r1 = linspace(1,0,half);           % red channel fades out
+    g1 = linspace(0,1,half);           % green channel ramps up
+    b1 = zeros(1,half);                % no blue component
+
+    % optional pure-green centre row (only if n is odd)
+    rC = zeros(1,centre);
+    gC = ones(1,centre);
+    bC = zeros(1,centre);
+
+    % green→red (mirror of first half)
+    r2 = fliplr(r1);
+    g2 = fliplr(g1);
+    b2 = b1;
+
+    cmap = [r1 rC r2; g1 gC g2; b1 bC b2]';
+end
