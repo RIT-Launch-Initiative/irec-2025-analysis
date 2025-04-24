@@ -1,4 +1,4 @@
-3`2% This script will collect all of the data in various scripts for you and
+% This script will collect all of the data in various scripts for you and
 % collect it
 close all;clear; 
 
@@ -52,7 +52,8 @@ data_settle_threshold = zeros(nSims,1);
 data_pitch_moment = zeros((ceil(tsteps)),nSims);
 
 
-
+tube = otis.component(name="Upper Body Tube 31.5in (Drogue + Payload)");
+tube.setFinish(0.)
 
 for I = 1:nSims
 
@@ -245,6 +246,7 @@ function plotlables(config)
     grid;
     grid minor;
 end
+
 
 tiledlayout(2,1)
 nexttile;

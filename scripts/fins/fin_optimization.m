@@ -421,6 +421,7 @@ fins.setTipChord(best_Lt);
 fins.setRootChord(best_Lr);
 fins.setHeight(best_h);
 NoseWeight.setOverrideMass(best_noseM);
+NoseWeight.set
 
 % ** Save your final rocket configuration **
 otis.save();
