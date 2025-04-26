@@ -1,7 +1,4 @@
-% This script will collect all of the data in various scripts for you and
-% collect it
 close all;clear; 
-
 
 addpath(genpath("C:\\lmatlib"))
 addpath(genpath("C:\lmatlib\sim"));
@@ -21,7 +18,7 @@ NoseWeight = otis.component(name="Adjustable stability weight");
 NoseWeight = NoseWeight.getMass();
 
 % needs to be in descending order
-pucks= [1500 1000 750 500 250 250 100 100 50 25 25 10];
+pucks= [1500 750 500 250 100 50 50 25 15];
 target = NoseWeight;
 weight_combo = [];
 count = 1;
