@@ -21,7 +21,7 @@ NoseWeight = otis.component(name="Adjustable stability weight");
 NoseWeight = NoseWeight.getMass();
 
 % needs to be in descending order
-pucks= [1000 750 500 500 250 250 100 100 50 25 25 10];
+pucks= [1500 1000 750 500 250 250 100 100 50 25 25 10];
 target = NoseWeight;
 weight_combo = [];
 count = 1;
