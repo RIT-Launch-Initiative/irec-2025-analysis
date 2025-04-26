@@ -7,7 +7,7 @@ addpath(genpath("C:\lmatlib"));
 addpath(genpath("C:\lmatlib\sim"));
 
 % Sweep ranges (edit as needed)
-tempVals_C    = 20  : 1 : 30;    % °C
+tempVals_C    = 20  : 1 : 30;    % °C2
 windVals_mph  = 5  : 1 : 20;    % mph
 noseMin_kg    = 1;              % lower mass bound
 noseMax_kg    = 4;              % upper mass bound
@@ -72,6 +72,16 @@ for kT = 1:nT
         massChart_kg(kT, jW) = mid;
     end
 end
+
+noseconemass()
+
+%% --Weight sizing function--- %%
+function weights = noseconemass(stab_weight)
+    pucks= [1000 1000 500 500 500 100 100 100 100 50 50 25 25];
+
+    
+end
+
 
 %% ── PLOT SIZING CHART ────────────────────────────────────────────────────
 [T_mesh, W_mesh] = meshgrid(tempVals_C, windVals_mph);
