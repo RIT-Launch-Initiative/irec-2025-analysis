@@ -73,15 +73,6 @@ for kT = 1:nT
     end
 end
 
-noseconemass()
-
-%% --Weight sizing function--- %%
-function weights = noseconemass(stab_weight)
-    pucks= [1000 1000 500 500 500 100 100 100 100 50 50 25 25];
-
-    
-end
-
 
 %% ── PLOT SIZING CHART ────────────────────────────────────────────────────
 [T_mesh, W_mesh] = meshgrid(tempVals_C, windVals_mph);
