@@ -7,10 +7,10 @@ addpath(genpath("C:\lmatlib"));
 addpath(genpath("C:\lmatlib\sim"));
 
 % Sweep ranges (edit as needed)
-tempVals_C    = 15  : 1 : 30;    % °C
+tempVals_C    = 20  : 1 : 30;    % °C
 windVals_mph  = 5  : 1 : 20;    % mph
-noseMin_kg    = 2;              % lower mass bound
-noseMax_kg    = 6;              % upper mass bound
+noseMin_kg    = 1;              % lower mass bound
+noseMax_kg    = 4;              % upper mass bound
 targetApogee_ft = 10150;        % desired apogee
 
 % Root-finder settings
@@ -23,6 +23,7 @@ mph2ms = 0.44704;     % mph → m/s
 
 nT = numel(tempVals_C);
 nW = numel(windVals_mph);
+numsims = nW*nT
 massChart_kg = NaN(nT, nW);   % rows = temp, cols = wind
 
 %% ── LOAD ROCKET + FIND NOSE WEIGHT COMPONENT ────────────────────────────
@@ -34,7 +35,7 @@ assert(~isempty(NoseWeight), "Component 'Adjustable stability weight' not found!
 %% ── MAIN GRID SEARCH ─────────────────────────────────────────────────────
 for kT = 1:nT
     T_K = tempVals_C(kT) + 273.15;   % Kelvin
-
+    disp(kT);
     for jW = 1:nW
         W_ms = windVals_mph(jW) * mph2ms;
 
@@ -68,13 +69,19 @@ for kT = 1:nT
             end
         end
         % Store mass rounded to nearest 0.1 kg (100 g)
-        massChart_kg(kT, jW) = round(mid, 1);
+        massChart_kg(kT, jW) = mid;
     end
 end
 
 %% ── PLOT SIZING CHART ────────────────────────────────────────────────────
 [T_mesh, W_mesh] = meshgrid(tempVals_C, windVals_mph);
 T_mesh = T_mesh'; W_mesh = W_mesh';   % align with loops
+
+[Tq,Wq]  = ndgrid(min(tempVals_C):0.25:max(tempVals_C), ...
+                  min(windVals_mph):0.25:max(windVals_mph));
+massFine = interp2(W_mesh, T_mesh, massChart_kg, Wq, Tq, 'linear');
+
+
 
 fig = figure('Color','w');
 levels = noseMin_kg : 0.1 : noseMax_kg;   % 0.1-kg contours
@@ -83,6 +90,9 @@ colormap(turbo);
 hold on;
 [C,h] = contour(W_mesh, T_mesh, massChart_kg, levels, '-k', 'LineWidth',0.7);
 clabel(C, h, 'FontSize',7, 'Color','k', 'LabelSpacing',250);
+
+figure('Color','w');
+contourf(Wq, Tq, massFine, levels, 'LineColor','none');  % smoother contours
 
 % Black-out impossible regions
 mask = isnan(massChart_kg);
@@ -128,3 +138,5 @@ Lookup = array2table(massChart_kg, ...
 
 disp('Required nose-mass [kg]  (rows = °C, cols = mph)');
 disp(Lookup);
+
+writetable(Lookup, 'nose_mass_lookup.csv', 'WriteRowNames', true);
