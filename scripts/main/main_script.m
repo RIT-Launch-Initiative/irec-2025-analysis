@@ -9,7 +9,7 @@ addpath(genpath("C:\lmatlib\sim"));
 % open rocket integration intitialize 
 otis_path = "C:\\irec-2025-analysis\\IREC_2025_M6000ST-0.ork";
 otis = openrocket(otis_path);
-sim = otis.sims("15MPH-TEXAS-36C-(TYP)"); %from openrocket
+sim = otis.sims("10MPH-TEXAS-36C-(TYP)"); %from openrocket
 if ~isfile(otis_path)
     error("No document '%s' found. Ensure the path is correct.", otis_path);
 end
@@ -18,12 +18,12 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 100; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+nSims = 250; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
 wind_speed = 4.47; %m/s
 wind_speed_spread = 4.47; % m/s
 wind_speed_devation = (wind_speed/10);
-wind_direction = 180;
-temp_spread = 20; % c
+wind_direction = 45;
+temp_spread = 10; % c
 temp = opts.getLaunchTemperature;
 wind_direction_spread = 360;
 time_step = 0.025;
@@ -70,7 +70,6 @@ for I = 1:nSims
     data = openrocket.simulate(sim, outputs = "ALL");
     data_apogee(1,I) = max(data.Altitude);
 
-
     %limit data range
     data_range = timerange(eventfilter("LAUNCHROD"), eventfilter("APOGEE"), "openleft");
     launchRow = eventfilter("LAUNCHROD");
@@ -82,7 +81,6 @@ for I = 1:nSims
 
     data = data(data_range, :);
     data_burnout_plus3 = data(tr, :);
-
 
     % collect interesting information
     stabilityMargin = data{:, 'Stability margin'};
@@ -103,7 +101,6 @@ for I = 1:nSims
 
     i_over = find(aoa_deg > thresh, 1, "last");
     settle_time = seconds(data.Time(i_over));
-
 
     overshoot = computeOvershoot(aoa_deg);
 
@@ -146,125 +143,6 @@ exportResultsToExcel(outFile, ...
     data_apogee, data_stabilityOffRod, data_time_to_stab, ...
     data_settle_time, data_overshoot, data_settle_threshold, ...
     data_aoa, time_step);
-
-%convert MKS to mph,C
-data_apogee = data_apogee*meterTofoot;
-data_temp = data_temp-273.15; % K to C
-
-% %% Visualization 
-% figure;
-% tiledlayout(1,3)
-% 
-% % First tile: Wind Speeds vs. Stability Off Rod
-% nexttile;
-% title("Wind speed vs. Stability off the Rod")
-% scatter(data_wind_speeds(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-% xlabel("Wind Speeds(m/s)")
-% ylabel("Stability Off Rod (cal)")
-% plotlables(2);
-% 
-% 
-% % Second tile: Wind Direction vs. Stability Off Rod
-% nexttile;
-% title("Wind direction vs. Stability off the Rod")
-% scatter(data_wind_direciton(1,:), data_stabilityOffRod(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-% xlabel("Wind Direction (°)")
-% ylabel("Stability Off Rod (cal)")
-% plotlables(2);
-% 
-% % Third tile: Temperature vs. Stability Off Rod
-% nexttile;
-% 
-% for J = 1:length(data_time_to_stab)
-%     if data_stabilityOffRod(1,J) <= 1.5
-%         scatter(data_time_to_stab(1,J)*1000, data_stabilityOffRod(1,J),36, 'filled', 'MarkerFaceColor', '#F76902')
-%         ylabel("Stability Off Rod (cal)")
-%         ylim([1 2])
-%         ylabel('Stability(cal)'); %xlabel function
-%         yline(1.5, 'b--', 'Minimum stability required by DTEG', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-%         xlabel('Time to 1.5 cal(ms)')
-% 
-%     end
-% end
-% grid ;
-% grid minor;
-% title("Time to 1.5 cal")
-% 
-% fontsize(16,"points")
-% 
-% 
-% 
-% 
-% figure;
-% 
-% tiledlayout(1,3)
-% 
-% 
-% nexttile;
-% title("Wind speed vs. Apogee")
-% scatter(data_wind_speeds(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-% xlabel("Wind Speeds(m/s)")
-% ylabel("Apogee(ft)")
-% ylim([8750 11250])
-% ax = gca; % axes handle
-% ax.YAxis.Exponent = 0;
-% plotlables(1);
-% 
-% nexttile;
-% title("Wind direction(°)vs. Apogee(ft)")
-% scatter(data_wind_direciton(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-% xlabel("Wind Direction(°)")
-% ylabel("Apogee(ft)")
-% ylim([8750 11250])
-% ax = gca; % axes handle
-% ax.YAxis.Exponent = 0;
-% plotlables(1);
-% 
-% nexttile;
-% title("Temperature(°C) vs. Apogee(ft)")
-% scatter(data_temp(1,:), data_apogee(1,:), 36, 'filled', 'MarkerFaceColor', '#F76902')
-% xlabel("Temperature(°C)")
-% ylabel("Apogee(ft)")
-% ylim([8750 11250])
-% ax = gca; % axes handle
-% ax.YAxis.Exponent = 0;
-% plotlables(1);
-
-
-fontsize(16,"points")
-
-%% plot funciton
-function plotlables(config)
-    if config == 1
-        
-    elseif config == 2
-        ylim([1 2])
-            end
-    grid;
-    grid minor;
-end
-
-tiledlayout(2,1)
-nexttile;
-histogram(data_stabilityOffRod);
-xlabel('Stability off the rod [cal]')
-fontsize(16,"points")
-
-xlabel('Stability (body calibers)'); %xlabel function
-xline(1.5, 'k--', 'MIN STAB', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-fontsize(16,"points");
-
-nexttile;
-histogram(data_apogee);
-xline(11000, 'k--', '+10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-xline(10000, 'k--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-xline(9000, 'k--', '-10%', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','center');
-xlim([8500 12500])
-xlabel('Apogee [ft]')
-
-fontsize(16,"points")
-ax = gca; % axes handle
-ax.XAxis.Exponent = 0;
 
 
 function overshoot = computeOvershoot(A_array)

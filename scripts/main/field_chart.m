@@ -7,7 +7,7 @@ addpath(genpath("C:\lmatlib"));
 addpath(genpath("C:\lmatlib\sim"));
 
 % Sweep ranges (edit as needed)
-tempVals_C    = 20  : 1 : 30;    % °C2
+tempVals_C    = 20  : 1 : 45;    % °C2
 windVals_mph  = 5  : 1 : 20;    % mph
 noseMin_kg    = 1;              % lower mass bound
 noseMax_kg    = 4;              % upper mass bound
@@ -29,7 +29,7 @@ massChart_kg = NaN(nT, nW);   % rows = temp, cols = wind
 %% ── LOAD ROCKET + FIND NOSE WEIGHT COMPONENT ────────────────────────────
 assert(isfile(orkFilePath), ".ork file not found: %s", orkFilePath);
 otis = openrocket(orkFilePath);
-NoseWeight = otis.component(name="Adjustable stability weight");
+NoseWeight = otis.component(name="Adjustable stability weight(s)");
 assert(~isempty(NoseWeight), "Component 'Adjustable stability weight' not found!");
 
 %% ── MAIN GRID SEARCH ─────────────────────────────────────────────────────
@@ -136,6 +136,7 @@ colNames = compose('%d_mph', windVals_mph);      % valid var names
 Lookup = array2table(massChart_kg, ...
                      'RowNames', rowNames, ...
                      'VariableNames', matlab.lang.makeValidName(colNames));
+
 
 disp('Required nose-mass [kg]  (rows = °C, cols = mph)');
 disp(Lookup);

@@ -24,7 +24,7 @@ if ~isfile(orkFilePath)
     error(".ork file not found: %s", orkFilePath);
 end
 otis = openrocket(orkFilePath);
-NoseWeight = otis.component(name="Adjustable stability weight");
+NoseWeight = otis.component(name="Adjustable stability weight(s)");
 if isempty(NoseWeight)
     error("Component 'Adjustable stability weight' not found!");
 end
