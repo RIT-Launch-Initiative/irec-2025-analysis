@@ -35,3 +35,4 @@ codegen/
 # buildtool cache folder
 .buildtool/
 
+lmatlib/
