@@ -30,6 +30,32 @@ time_step = 0.025;
 turb = 0.15;
 tol         = 0.1;
 
+%% Load custom atm
+% Atmospheric model
+% List available models
+
+
+site = launchsites("spaceport-midland");
+[imag, rast] = flight_basemap(site.lat, site.lon, 1e3);
+
+figure(name = "Trajectory comparisons");
+traj_ax = axes;
+disp("Available NCEP models:");
+ncep.list
+disp("Available GFS output grids: ");
+ncep.list("gfs")
+
+times = datetime(2024, 06, 21, TimeZone = "MST") + hours([10 12]);
+launchtime = datetime(2024, 06, 21, 10, 21, 00, TimeZone = "MST");
+airdata = atmosphere("gfs", "pgrb2.1p00", site.lat, site.lon, launchtime, ...
+    minpres = 450); % 400 mbar gives up 
+% Celcius to Kelvin
+airdata.TMP = airdata.TMP + 273.15;
+
+data = otis.simulate(sim, outputs = "ALL", ...
+    atmos = airdata(:, ["HGT", "PRES", "TMP"]));
+
+
 %conversion factors
 m_sTOmph = 2.237136;
 meterTofoot = 3.28084;
@@ -40,28 +66,48 @@ alt_data = [2,2];
 m_kg = 0
 
 cmp = otis.component('name','Adjustable stability weight(s)');
-
 cmp.setOverrideMass(m_kg);
 cmp.setComponentMass(m_kg);
 
 
-data = openrocket.simulate(sim, outputs = "ALL");
+data = otis.simulate(sim, outputs = "ALL", ...
+    atmos = airdata(:, ["HGT", "PRES", "TMP"]));
 
 data.("Indicated altitude") = pressalt("m", data.("Air pressure"), "Pa") - pressalt("m", data{1, "Air pressure"}, "Pa");
 
-plot((data.("Indicated altitude")))
-hold on
-plot((data.("Altitude")))
-hold off
-
-legend('Indicated Alt','Alt')
 
 amax = max(data.("Altitude"))
 
 imax = max(data.("Indicated altitude"))
 
 alt_data (1,1) = amax;
-ald_data (1,2) = imax;
+alt_data (1,2) = imax;
 
 
+m_kg = 1.7
+cmp = otis.component('name','Adjustable stability weight(s)');
+cmp.setOverrideMass(m_kg);
+cmp.setComponentMass(m_kg);
+data = otis.simulate(sim, outputs = "ALL", ...
+    atmos = airdata(:, ["HGT", "PRES", "TMP"]));
 
+data.("Indicated altitude") = pressalt("m", data.("Air pressure"), "Pa") - pressalt("m", data{1, "Air pressure"}, "Pa");
+
+amax = max(data.("Altitude"))
+
+imax = max(data.("Indicated altitude"))
+
+
+alt_data (2,1) = amax;
+alt_data (2,2) = imax;
+
+alt_data = alt_data*3.28084;
+
+fprintf(...
+  'Empty Weight Altitude: %.2f    Empty Weight Indicated Altitude: %.2f\n', ...
+  alt_data(1,1), alt_data(1,2) ...
+);
+fprintf(...
+  '1.7 kg Weight Altitude: %.2f    1.7 kg Weight Indicated Altitude: %.2f\n', ...
+  alt_data(2,1), alt_data(2,2) ...
+);
