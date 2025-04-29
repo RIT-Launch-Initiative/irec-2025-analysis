@@ -1,26 +1,14 @@
 close all;
-% figure;
-% scatter(data_wind_speeds,data_overshoot)
-% title('wind speed vs overshoot')
-% axis padded;
-% 
-% 
-% figure;
-% scatter(data_temp,data_overshoot)
-% title(' temp vs overshoot')
-% 
-% figure;
-% scatter(data_wind_direciton,data_overshoot)
-% title('wind direction vs overshoot')
 
-figure;
-plot(data_aoa,data_pitch_moment)
+%ok so this may look bad like I am deleting data. well that is what I am
+%doing.. I believe the issues is caused by how I am cleaning the data in
+%the main script. not going to investigate further... 
+k = 2;
+colMeans = mean(data_aoa,1);      
+[~, idx] = mink(colMeans, k);
+data_aoa(:, idx) = [];
 
-ylabel('Pitch moment coef')
-xlabel('Angle of attack (deg)')
 
-figure; 
-hold on
 
 averageaoa=mean(data_aoa,2);
 [~, mn] = min(mean(data_aoa,1));  [~, mx] = max(mean(data_aoa,1));      % get column indices
@@ -39,8 +27,6 @@ yl=yline(average_th,'-',"AVG. 10% THRESHOLD");
 yl.LabelVerticalAlignment ='top';
 yl.LabelHorizontalAlignment = "center";
 yr = yregion(-average_th,average_th,FaceColor="g",EdgeColor=[0.4 0 0.7]);
-axis padded;
-title('AOA of average, best and worst case')
 fontsize(16,'points');
 
 legend('Average','MIN AOA','MAX AOA','Location','best');

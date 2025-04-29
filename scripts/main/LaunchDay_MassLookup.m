@@ -7,7 +7,7 @@ lmatlibPath = 'C:/lmatlib';
 pucks_g = [1600 800 400 200 100 50 25];% grams, descending
 
 tempVals_C   = 20:1:40;   % °C grid
-windVals_mph = 5:1:20;    % mph grid
+windVals_mph = 3:1:20;    % mph grid
 noseMin_kg   = 1;
 noseMax_kg   = 2.5;
 targetApogee_ft_default = 10100; % default apogee
@@ -53,10 +53,8 @@ close(wb)
 %% SHOW HEAT-MAP 
 figure('Color','w'); imagesc(windVals_mph,tempVals_C,massChart_kg);
 set(gca,'YDir','normal'); grid on; box on; colormap(turbo);
-cb=colorbar; cb.Label.String='Required mass [kg]';
 xlabel('Wind speed [mph]'); ylabel('Midland temp [°C]');
-title(sprintf('Nose Mass for %d ft apogee',targetApogee_ft_default));
-digits = 2;                       % how many decimals you want
+digits = 3;                       % how many decimals you want
 fmt    = sprintf('%%.%df',digits);  % e.g. '%.2f', '%.3f', …
 
 for r = 1:nT

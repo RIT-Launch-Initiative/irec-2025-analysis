@@ -1,32 +1,51 @@
-close all;
-%% Visualization 
-% settle time vs wind speed.
-figure;
-scatter(data_wind_speeds,data_overshoot)
-xlabel('Wind speed [m/s]')
-ylabel('Overshoot')
+% close all;
+% %% Visualization 
+% 
+% figure;
+% scatter(...
+%     data_wind_speeds*2.237136, ...
+%     data_stabilityOffRod, ...
+%     36, ...         % marker size (tweak as you like)
+%     'filled' ...    % makes the circles solid
+% );
+% xlabel('Wind speed [mph]')
+% ylabel('Stability off the rod [cal]')
+% set(gca,'FontSize',16)
+% axis padded
+% grid minor
+% 
+% 
+% fig_export('windvsstab.pdf')
 
-figure;
-tiledlayout(2,1)
-nexttile;
-histogram(data_stabilityOffRod);
-xlabel('Stability off the rod [cal]')
-xline(1.5, 'k--', 'MIN STABILITY', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','right');
-fontsize(16,"points")
-axis padded
 
-nexttile;
-histogram(data_apogee);
-xlabel('Apogee [ft]')
-xline(11000, 'k--', '+10%', 'LabelVerticalAlignment','top', 'LabelHorizontalAlignment','right');
-xline(10000, 'k--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','right');
-xline(9000, 'k--', '-10%', 'LabelVerticalAlignment','top', 'LabelHorizontalAlignment','right');
-fontsize(16,"points")
-axis padded
-
-xlim([8750 11250])
-ax = gca; % axes handle
-ax.XAxis.Exponent = 0;
+% 
+% 
+% figure;
+% scatter(data_wind_speeds,data_overshoot)
+% xlabel('Wind speed [m/s]')
+% ylabel('Overshoot')
+% 
+% figure;
+% tiledlayout(2,1)
+% nexttile;
+% histogram(data_stabilityOffRod);
+% xlabel('Stability off the rod [cal]')
+% xline(1.5, 'k--', 'MIN STABILITY', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','right');
+% fontsize(16,"points")
+% axis padded
+% 
+% nexttile;
+% histogram(data_apogee);
+% xlabel('Apogee [ft]')
+% xline(11000, 'k--', '+10%', 'LabelVerticalAlignment','top', 'LabelHorizontalAlignment','right');
+% xline(10000, 'k--', 'Target Apogee', 'LabelVerticalAlignment','middle', 'LabelHorizontalAlignment','right');
+% xline(9000, 'k--', '-10%', 'LabelVerticalAlignment','top', 'LabelHorizontalAlignment','right');
+% fontsize(16,"points")
+% axis padded
+% 
+% xlim([8750 11250])
+% ax = gca; % axes handle
+% ax.XAxis.Exponent = 0;
 
 
 
@@ -220,7 +239,7 @@ end
 %% plot funciton
 function plotlables(config)
     if config == 1
-        
+
     elseif config == 2
         ylim([1 2])
             end

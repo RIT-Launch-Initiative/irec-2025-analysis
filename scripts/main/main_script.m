@@ -1,8 +1,8 @@
-% This script will collect all of the data in various scripts for you and
-% collect it
+% This script will collect all of the data in various scripts for you and collect it
 close all;clear; 
 
-
+% paths to integrations. in the future this should be replaced with a
+% matlab project
 addpath(genpath("C:\\lmatlib"))
 addpath(genpath("C:\lmatlib\sim"));
 
@@ -18,7 +18,7 @@ end
 opts = sim.getOptions();
 
 %Monte carlo variables
-nSims = 250; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
+nSims = 10; % change this to increase number of iterations. higher is better. minimum for any design review is 100 
 wind_speed = 4.47; %m/s
 wind_speed_spread = 4.47; % m/s
 wind_speed_devation = (wind_speed/10);
@@ -44,8 +44,8 @@ data_apogee = zeros(1,nSims);
 data_time_to_stab = zeros(1,nSims);
 data_settle_time = zeros(1,nSims);
 data_overshoot      = zeros(1, nSims);
-t_burn = 1.736;
-t_launch = 0.255;
+t_burn = 1.736; % time of burnout
+t_launch = 0.255; % time of launchrod clearance
 tsteps = 1+(3+t_burn-t_launch)/time_step;
 data_aoa = zeros((ceil(tsteps)),nSims);
 data_settle_threshold = zeros(nSims,1);
@@ -87,7 +87,15 @@ for I = 1:nSims
   
     rawaoa = data_burnout_plus3.("Angle of attack");
     aoa_clean = cleanAOA(time_step,rawaoa);
-    data_aoa (:,I) = aoa_clean;  
+
+    % was having problems with the arrays being slightly off. this worked
+    % \shrug? 
+    if height(data_aoa) == height(aoa_clean)
+        data_aoa (:,I) = aoa_clean;  
+    else
+        data_aoa = data_aoa - (height(data_aoa) - height(aoa_clean));
+        data_aoa (:,I) = aoa_clean; 
+    end
     data_stabilityOffRod (1,I) = data{1, 'Stability margin'};
 
     % compute settling time & overshoot
@@ -137,7 +145,7 @@ end
 % specify output file
 outFile = fullfile(pwd, "simulation_results.xlsx");
 
-% call the exporter
+% call the exporter, also converting from K to C here.
 exportResultsToExcel(outFile, ...
     data_wind_speeds, data_temp-273.15, data_wind_direciton, ...
     data_apogee, data_stabilityOffRod, data_time_to_stab, ...
