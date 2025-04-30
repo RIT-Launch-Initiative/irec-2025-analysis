@@ -18,7 +18,7 @@ air.TMP = air.TMP + 273.15;                        % °C→K
 atmData = air(:, ["HGT","PRES","TMP"]);             % pass this to simulate
 
 %% MONTE CARLO PARAMS
-nSims                  = 100;    % at least 100 for design review
+nSims                  = 250;    % at least 100 for design review
 wind_speed_avg         = 4.47;   % m/s
 wind_speed_spread      = 4.47;   % m/s
 wind_speed_deviation   = wind_speed_avg/10;
@@ -77,7 +77,7 @@ for I = 1:nSims
     sub = data(tr,:);
     
     % stability margin off‐rod & AOA
-    data_stabOffRod(I)     = data{lrIdx,'Stability margin'};
+    data_stabOffRod(I)     = min(data.("Stability margin"));
     rawAOA                  = sub.("Angle of attack");
     aoa_clean               = cleanAOA(time_step, rawAOA);
     n = height(aoa_clean);
@@ -116,6 +116,29 @@ exportResultsToExcel(outFile, ...
     data_apogee, data_stabOffRod, data_time_to_stab, ...
     data_settle_time, data_overshoot, data_settle_thresh, ...
     data_aoa, time_step);
+
+
+
+%% Visuals
+
+close all;
+
+figure;
+scatter(...
+    data_wind_speeds*2.237136, ...
+    data_stabOffRod, ...
+    36, ...         % marker size (tweak as you like)
+    'filled' ...    % makes the circles solid
+);
+xlabel('Wind speed [mph]')
+ylabel('Stability off the rod [cal]')
+set(gca,'FontSize',24)
+axis padded
+grid minor
+
+% fig_export('windvsstab.pdf')
+
+
 
 %% — helper functions (computeOvershoot, cleanAOA, exportResultsToExcel) here as before
 

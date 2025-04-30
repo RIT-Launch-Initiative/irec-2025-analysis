@@ -1,21 +1,20 @@
-% close all;
-% %% Visualization 
-% 
-% figure;
-% scatter(...
-%     data_wind_speeds*2.237136, ...
-%     data_stabilityOffRod, ...
-%     36, ...         % marker size (tweak as you like)
-%     'filled' ...    % makes the circles solid
-% );
-% xlabel('Wind speed [mph]')
-% ylabel('Stability off the rod [cal]')
-% set(gca,'FontSize',16)
-% axis padded
-% grid minor
-% 
-% 
-% fig_export('windvsstab.pdf')
+close all;
+
+figure;
+scatter(...
+    data_wind_speeds*2.237136, ...
+    data_stabilityOffRod, ...
+    36, ...         % marker size (tweak as you like)
+    'filled' ...    % makes the circles solid
+);
+xlabel('Wind speed [mph]')
+ylabel('Stability off the rod [cal]')
+set(gca,'FontSize',16)
+axis padded
+grid minor
+
+
+fig_export('windvsstab.pdf')
 
 
 % 
