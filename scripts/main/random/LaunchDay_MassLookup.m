@@ -9,8 +9,8 @@ lmatlibPath = 'C:/lmatlib';
 pucks_g = [1600 800 400 200 100 50 25];
 
 % Temperature and wind grids
-tempVals_C   = 20:1:40;   % °C grid
-windVals_mph = 3:1:20;    % mph grid
+tempVals_C   = 15:1:50;   % °C grid
+windVals_mph = 2:1:20;    % mph grid
 
 % Nose mass bounds and target
 noseMin_kg   = 1;
@@ -24,7 +24,6 @@ maxIter = 20;   % bisection iterations
 if isempty(which('net.sf.openrocket.startup.Application'))
     error('OpenRocket classes not found. Run openrocket_setup and restart MATLAB.');
 end
-
 
 %% CONSTANTS & PREALLOC
 ft2m   = 0.3048;
@@ -48,7 +47,12 @@ atmData = air(:,["HGT","PRES","TMP"]);
 %% BUILD TEMP × WIND GRID
 wb = waitbar(0,'Building grid...');
 for kT = 1:nT
-    waitbar(kT/nT, wb, sprintf('Temp %d°C (%d/%d)', tempVals_C(kT), kT, nT));
+    % set ambient temperature for this row (flat profile)
+    T_C = tempVals_C(kT);
+    T_K = T_C + 273.15;
+    atmData.TMP(:) = T_K;
+
+    waitbar(kT/nT, wb, sprintf('Temp %d°C (%d/%d)', T_C, kT, nT));
     for jW = 1:nW
         W_ms = windVals_mph(jW) * mph2ms;
         massChart_kg(kT,jW) = find_mass(otis, simObj, noseCmp, atmData, ...
@@ -60,21 +64,36 @@ close(wb);
 %% SHOW HEAT-MAP
 figure('Color','w');
 imagesc(windVals_mph, tempVals_C, massChart_kg);
-set(gca,'YDir','normal'); grid on; box on; colormap(turbo);
-xlabel('Wind speed [mph]'); ylabel('Temperature [°C]');
+set(gca, ...
+    'YDir','normal', ...       % right-side-up
+    'FontSize',24, ...         % tick labels
+    'GridLineStyle','none');   % no grid
+box on;
 
+% green→red gradient
+nC = 256;
+cmap = [linspace(0,1,nC)' linspace(1,0,nC)' zeros(nC,1)];
+
+xlabel('Wind speed [mph]','FontSize',24);
+ylabel('Temperature [°C]','FontSize',24);
+
+% annotations in 16 pt too
 digits = 3;
 fmt    = sprintf('%%.%df',digits);
 for r = 1:nT
     for c = 1:nW
         if ~isnan(massChart_kg(r,c))
-            text(windVals_mph(c), tempVals_C(r), sprintf(fmt, massChart_kg(r,c)), ...
-                 'HorizontalAlignment','center','FontSize',8,'Color','k');
+            text( windVals_mph(c), tempVals_C(r), ...
+                  sprintf(fmt,massChart_kg(r,c)), ...
+                  'HorizontalAlignment','center', ...
+                  'FontSize',16, ...
+                  'Color','k' );
         end
     end
 end
 
 drawnow;
+
 
 %% LOOKUP LOOP
 while true
@@ -87,6 +106,9 @@ while true
 
     A_user = input(sprintf('Target apogee [ft AGL] (default %d): ', targetApogee_ft_default));
     if isempty(A_user), A_user = targetApogee_ft_default; end
+
+    % update atmosphere for user’s temp
+    atmData.TMP(:) = T_user + 273.15;
 
     reqMass_kg = find_mass(otis, simObj, noseCmp, atmData, W_user*mph2ms, ...
                     A_user, noseMin_kg, noseMax_kg, tol_ft, maxIter, ft2m);
@@ -110,22 +132,18 @@ function mass = find_mass(otis, simObj, cmp, atmData, W_ms, target_ft, lo, hi, t
     f_lo = apogee_diff(otis, simObj, cmp, atmData, lo, W_ms, ft2m, target_ft);
     f_hi = apogee_diff(otis, simObj, cmp, atmData, hi, W_ms, ft2m, target_ft);
     if sign(f_lo) == sign(f_hi)
-        mass = NaN;
-        return;
+        mass = NaN; return;
     end
     for it = 1:maxIt
         mid   = 0.5 * (lo + hi);
         f_mid = apogee_diff(otis, simObj, cmp, atmData, mid, W_ms, ft2m, target_ft);
         if abs(f_mid) < tol || (hi - lo) < 0.005
-            mass = mid;
-            return;
+            mass = mid; return;
         end
         if sign(f_mid) == sign(f_lo)
-            lo   = mid;
-            f_lo = f_mid;
+            lo   = mid; f_lo = f_mid;
         else
-            hi   = mid;
-            f_hi = f_mid;
+            hi   = mid; f_hi = f_mid;
         end
     end
     mass = mid;
@@ -140,14 +158,12 @@ function diff = apogee_diff(otis, simObj, cmp, atmData, m_kg, W_ms, ft2m, target
     opts.setLaunchIntoWind(false);
     opts.setTimeStep(0.05);
 
-    data = otis.simulate(simObj, ...
-           'outputs', 'Air pressure', ...
-           'atmos',   atmData);
+    data = otis.simulate(simObj, 'outputs','Air pressure','atmos',atmData);
 
     h = pressalt("m", data.("Air pressure"), "Pa") ...
-      - pressalt("m", data{1, "Air pressure"}, "Pa");
+      - pressalt("m", data{1,"Air pressure"}, "Pa");
 
-    diff = max(h) / ft2m - target_ft;
+    diff = max(h)/ft2m - target_ft;
 end
 
 function [combo, res] = split_into_pucks(req_kg, pucks)
