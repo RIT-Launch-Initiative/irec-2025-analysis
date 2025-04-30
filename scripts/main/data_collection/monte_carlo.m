@@ -1,7 +1,7 @@
 clear; close all; clc;
 
 %% OPENROCKET SETUP
-otis_path = "IREC_2025_M6000ST-0.ork";
+otis_path = "C:\irec-2025-analysis\rocket_files\IREC_2025_M6000ST-0.ork";
 if ~isfile(otis_path)
     error("No document '%s' found. Ensure the path is correct.", otis_path);
 end
@@ -24,7 +24,8 @@ wind_speed_spread      = 4.47;   % m/s
 wind_speed_deviation   = wind_speed_avg/10;
 wind_direction_mean    = 45;     % degrees
 wind_direction_spread  = 360;    % full circle
-temp_spread            = 10;     % °C around launch‐site nominal
+nominal_temp = 35; % c
+temp_spread            = 15;     % °C around launch‐site nominal
 turbulence_intensity   = 0.15;
 time_step              = 0.025;  % s
 tol                    = 0.1;    % for settling‐time threshold

@@ -3,13 +3,12 @@ clear; close all; clc;
 
 % File paths
 orkFilePath = 'C:/irec-2025-analysis/IREC_2025_M6000ST-0.ork';
-lmatlibPath = 'C:/lmatlib';
 
 % Available pucks (g)
 pucks_g = [1600 800 400 200 100 50 25];
 
 % Temperature and wind grids
-tempVals_C   = 15:1:50;   % °C grid
+tempVals_C   = 20:1:50;   % °C grid
 windVals_mph = 2:1:20;    % mph grid
 
 % Nose mass bounds and target
@@ -64,34 +63,33 @@ close(wb);
 %% SHOW HEAT-MAP
 figure('Color','w');
 imagesc(windVals_mph, tempVals_C, massChart_kg);
-set(gca, ...
-    'YDir','normal', ...       % right-side-up
-    'FontSize',24, ...         % tick labels
-    'GridLineStyle','none');   % no grid
+set(gca,'YDir','normal','FontSize',24,'GridLineStyle','none');
 box on;
 
-% green→red gradient
-nC = 256;
-cmap = [linspace(0,1,nC)' linspace(1,0,nC)' zeros(nC,1)];
+% --- greyscale map -------------------------------------------------------
+nC   = 256;           % same resolution you used
+cmap = gray(nC);      % dark = low, light = high (flipud(gray(nC)) to invert)
+colormap(cmap);
+% -------------------------------------------------------------------------
 
 xlabel('Wind speed [mph]','FontSize',24);
 ylabel('Temperature [°C]','FontSize',24);
 
-% annotations in 16 pt too
-digits = 3;
-fmt    = sprintf('%%.%df',digits);
+% annotate
+digits = 3;  fmt = sprintf('%%.%df',digits);
 for r = 1:nT
     for c = 1:nW
-        if ~isnan(massChart_kg(r,c))
-            text( windVals_mph(c), tempVals_C(r), ...
-                  sprintf(fmt,massChart_kg(r,c)), ...
-                  'HorizontalAlignment','center', ...
-                  'FontSize',16, ...
-                  'Color','k' );
+        val = massChart_kg(r,c);
+        if ~isnan(val)
+            % pick text color based on cell brightness (mid-point = 0.5)
+            normVal = (val-min(massChart_kg(:)))/(max(massChart_kg(:))-min(massChart_kg(:)));
+            txtColor = normVal>0.5;   % 0→black, 1→white
+            text(windVals_mph(c), tempVals_C(r), sprintf(fmt,val), ...
+                 'HorizontalAlignment','center', 'FontSize',16, ...
+                 'Color', [txtColor txtColor txtColor]);
         end
     end
 end
-
 drawnow;
 
 
