@@ -2,21 +2,21 @@
 clear; close all; clc;
 
 % File paths
-orkFilePath = 'C:/irec-2025-analysis/IREC_2025_M6000ST-0.ork';
+orkFilePath = 'rocket_files/IREC_2025_M6000ST-0.ork';
 
 % Available pucks (g)
 pucks_g = [1600 800 400 200 100 50 25];
 
 % Temperature and wind grids
-tempVals_C   = 20:1:50;   % °C grid
-windVals_mph = 2:1:20;    % mph grid
+tempVals_C   = 20:2:40;   % °C grid
+windVals_mph = 2:2:20;    % mph grid
 
 % Nose mass bounds and target
 noseMin_kg   = 1;
 noseMax_kg   = 2.5;
 targetApogee_ft_default = 10100;
 
-tol_ft  = 15;   % apogee tolerance (ft)
+tol_ft  = 10;   % apogee tolerance (ft)
 maxIter = 20;   % bisection iterations
 
 %% VERIFY OPENROCKET
@@ -60,54 +60,7 @@ for kT = 1:nT
 end
 close(wb);
 
-%% SHOW HEAT-MAP
-figure('Color','w');
-imagesc(windVals_mph, tempVals_C, massChart_kg);
-set(gca,'YDir','normal','FontSize',24,'GridLineStyle','none');
-box on;
-
-% --- greyscale map -------------------------------------------------------
-nC   = 256;           % same resolution you used
-cmap = gray(nC);      % dark = low, light = high (flipud(gray(nC)) to invert)
-colormap(cmap);
-% -------------------------------------------------------------------------
-
-xlabel('Wind speed [mph]','FontSize',24);
-ylabel('Temperature [°C]','FontSize',24);
-
-% annotate
-% annotate with better contrast logic
-digits = 3;  fmt = sprintf('%%.%df',digits);
-for r = 1:nT
-    for c = 1:nW
-        val = massChart_kg(r,c);
-        if ~isnan(val)
-            % Normalize value
-            normVal = (val - min(massChart_kg(:))) / (max(massChart_kg(:)) - min(massChart_kg(:)));
-
-            % Get grayscale RGB value
-            grayRGB = gray(nC);
-            rgbVal = grayRGB(round(normVal*(nC-1)+1), :);
-
-            % Calculate perceived luminance (YIQ method)
-            luminance = 0.299*rgbVal(1) + 0.587*rgbVal(2) + 0.114*rgbVal(3);
-
-            % Choose black or white based on luminance
-            if luminance > 0.5
-                txtColor = [0 0 0]; % black
-            else
-                txtColor = [1 1 1]; % white
-            end
-
-            text(windVals_mph(c), tempVals_C(r), sprintf(fmt,val), ...
-                 'HorizontalAlignment','center', 'FontSize',16, ...
-                 'Color', txtColor);
-        end
-    end
-end
-
-drawnow;
-
+nm_contour
 
 %% LOOKUP LOOP
 while true
