@@ -1,14 +1,36 @@
 close all;
+clear all;
 
 %--------------- User parameters ---------------
 step = 0.1;   % contour interval (kg)
 %-----------------------------------------------
 
 % assume windVals_mph, tempVals_C, massChart_kg are already in workspace
+temps = 20:1:35;
+winds = 4:1:10;
+
+nsims = numel(temps)*numel(winds);
+
+data_nmass = zeros(1,nsims);
+
+wbar = waitbar(0, sprintf('Running %d sims...', nsims));
+
+sim_num = 0;
+for i = 1:numel(temps)
+    for k = 1:numel(winds)
+        sim_num = sim_num + 1;
+        waitbar(sim_num/nsims, wbar, ...
+            sprintf('Deg: %.1f, Wind Speed: %.1f, Sim %d / %d', temps(i), winds(k), sim_num, nsims));
+        data_nmass(i,k) = req_nosemass(temps(i), winds(k));
+    end
+end
+
+close(wbar);
+
 
 % Compute contour levels at fixed steps
-minVal = min(massChart_kg(:));
-maxVal = max(massChart_kg(:));
+minVal = min(data_nmass);
+maxVal = max(data_nmass);
 levs = floor(minVal/step)*step : step : ceil(maxVal/step)*step;
 
 % Plot filled contours
