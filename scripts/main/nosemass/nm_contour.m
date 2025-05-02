@@ -1,3 +1,4 @@
+close all;
 % Compute contour levels at fixed ste
 minVal = min(data_nmass(:));
 maxVal = max(data_nmass(:));
@@ -10,8 +11,8 @@ figure;
 contourf(data_winds, data_temps, data_nmass, levs, ...
          'LineColor','none', ...
          'FaceAlpha', 0.85);
-xlabel('Wind Speed (mph)','FontSize',24);
-ylabel('Temperature (°C)','FontSize',24);
+xlabel('Wind Speed (mph)','FontSize',16);
+ylabel('Temperature (°C)','FontSize',16);
 hold on;
 
 % Plot contour lines
@@ -19,7 +20,7 @@ hold on;
                   'LineWidth', 1.5, ...   % thicker lines
                   'LineColor', 'k');
 clabel(C, hC, ...
-       'FontSize', 18, ...
+       'FontSize', 16, ...
        'FontWeight', 'bold', ...
        'Color', 'k');
 
@@ -30,6 +31,6 @@ graymap = linspace(1, minGray, nColors)';
 colormap(repmat(graymap, 1, 3));
 
 % Overall font size for axes ticks, titles, etc.
-set(gca, 'FontSize', 20);
+set(gca, 'FontSize', 16);
 
 hold off;

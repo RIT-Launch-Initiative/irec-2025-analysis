@@ -1,4 +1,4 @@
-function fig_export(fileName)
+function fig_export(fileName,num)
 %FIG_EXPORT  Export figure(1) to PDF in a fixed directory.
 %   fig_export(fileName) saves the axes (gca) of figure(1)
 %   to 'C:\irec-2025-analysis\tech_report_figs\fileName.pdf'
@@ -11,7 +11,7 @@ function fig_export(fileName)
     end
 
     % select fig 1 and grab its axes
-    fig1 = figure(1);
+    fig1 = figure(num);
     ax   = gca;
 
     % export as vector PDF

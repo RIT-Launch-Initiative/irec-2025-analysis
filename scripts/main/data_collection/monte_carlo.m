@@ -1,7 +1,7 @@
 clear; close all; clc;
 
 %% OPENROCKET SETUP
-otis_path = "C:\irec-2025-analysis\rocket_files\IREC_2025_M6000ST-0.ork";
+otis_path = "rocket_files/IREC_2025_M6000ST-0.ork";
 if ~isfile(otis_path)
     error("No document '%s' found. Ensure the path is correct.", otis_path);
 end
@@ -19,12 +19,12 @@ atmData.TMP = atmData.TMP + 273.15;
 
 %% MONTE CARLO PARAMS
 rod_direction = 150;
-nSims                  = 500;    % at least 100 for design review
+nSims                  = 50;    % at least 100 for design review
 wind_speed_avg         = 7;   % m/s
-wind_speed_spread      = 3;   % m/s
+wind_speed_spread      = 0;   % m/s
 wind_speed_deviation   = 0;
 wind_direction_mean    = 150;     % degrees
-wind_direction_spread  = 75;    % full circle
+wind_direction_spread  = 0;    % full circle
 nominal_temp = 27.5; % c
 temp_spread            = 7.5;     % °C around launch‐site nominal
 turbulence_intensity   = 0.0;
@@ -214,3 +214,5 @@ function exportResultsToExcel(filename, windSpd, temp, windDir, apogee, stabOffR
     A = addvars(A, tVec, 'Before', 1, 'NewVariableNames', 'Time_s');
     writetable(A, filename, 'Sheet', 'AOA');
 end
+
+mean_real_apogee=mean(data_apogee-600)
