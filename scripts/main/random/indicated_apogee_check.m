@@ -7,9 +7,9 @@ addpath(genpath("C:\\lmatlib"))
 addpath(genpath("C:\lmatlib\sim"));
 
 % open rocket integration intitialize 
-otis_path = "C:\\irec-2025-analysis\\IREC_2025_M6000ST-0.ork";
+otis_path = "rocket_files/IREC_2025_M6000ST-0.ork";
 otis = openrocket(otis_path);
-sim = otis.sims("0MPH-TEXAS-30C"); %from openrocket
+sim = otis.sims("10MPH-TEXAS-36C-(TYP)"); %from openrocket
 if ~isfile(otis_path)
     error("No document '%s' found. Ensure the path is correct.", otis_path);
 end
@@ -84,7 +84,7 @@ alt_data (1,1) = amax;
 alt_data (1,2) = imax;
 
 
-m_kg = 1.7
+m_kg = 1.779
 cmp = otis.component('name','Adjustable stability weight(s)');
 cmp.setOverrideMass(m_kg);
 cmp.setComponentMass(m_kg);

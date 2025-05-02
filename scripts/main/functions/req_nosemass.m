@@ -1,9 +1,6 @@
-function [reqMass_kg, puckList_g, residual_g] = req_nosemass(launchTemp, wind_mph, varargin)
+function [reqMass_kg, puckList_g, residual_g] = req_nosemass(launchTemp, wind_ms)
     % Optional: target apogee (default 10100 ft)
     targetApogee_ft = 10100;
-    if nargin == 3
-        targetApogee_ft = varargin{1};
-    end
 
     % Parameters
     orkFilePath = 'rocket_files/IREC_2025_M6000ST-0.ork';
@@ -20,15 +17,13 @@ function [reqMass_kg, puckList_g, residual_g] = req_nosemass(launchTemp, wind_mp
     noseCmp = otis.component('name','Adjustable stability weight(s)');
     simObj  = otis.sims("10MPH-TEXAS-36C-(TYP)");
 
-    % setup atm
-    air     = load("rocket_files/midland_atmosphere.mat").airdata;
-    atmData = air(:, ["HGT","PRES","TMP"]);             % pass this to simulate
-    atmData.TMP = atmData.TMP + 273.15;
-
 
     % Simulate and get required mass
-    reqMass_kg = find_mass(otis, simObj, noseCmp, atmData, wind_mph*mph2ms, ...
-                    targetApogee_ft, noseMin_kg, noseMax_kg, tol_ft, maxIter, ft2m,launchTemp);
+    step_kg   = 0.01;
+    reqMass_kg = find_mass_brute(otis, simObj, noseCmp, ...
+                     wind_ms, targetApogee_ft, noseMin_kg, noseMax_kg, ...
+                     step_kg, ft2m, launchTemp);
+
 
     if isnan(reqMass_kg)
         puckList_g = [];
@@ -39,44 +34,43 @@ function [reqMass_kg, puckList_g, residual_g] = req_nosemass(launchTemp, wind_mp
     [puckList_g, residual_g] = split_into_pucks(reqMass_kg, pucks_g);
 end
 
-%% FUNCTIONS
-function mass = find_mass(otis, simObj, cmp, atmData, W_ms, target_ft, lo, hi, tol, maxIt, ft2m,launchTemp)
-    f_lo = apogee_diff(otis, simObj, cmp, atmData, lo, W_ms, ft2m, target_ft,launchTemp);
-    f_hi = apogee_diff(otis, simObj, cmp, atmData, hi, W_ms, ft2m, target_ft,launchTemp);
-    if sign(f_lo) == sign(f_hi)
-        mass = NaN; return;
+function mass = find_mass_brute(otis, simObj, cmp, W_ms, target_ft, ...
+                                lo, hi, step, ft2m, launchTemp)
+
+    masses = lo : step : hi;              % e.g. 0 : 0.01 : 2.5
+    errs   = zeros(size(masses));         % apogee error for each mass
+
+    for k = 1:numel(masses)
+        errs(k) = apogee_diff(otis,simObj,cmp, masses(k), ...
+                              W_ms, ft2m, target_ft, launchTemp);
     end
-    for it = 1:maxIt
-        mid   = 0.5 * (lo + hi);
-        f_mid = apogee_diff(otis, simObj, cmp, atmData, mid, W_ms, ft2m, target_ft,launchTemp);
-        if abs(f_mid) < tol || (hi - lo) < 0.005
-            mass = mid; return;
-        end
-        if sign(f_mid) == sign(f_lo)
-            lo   = mid; f_lo = f_mid;
-        else
-            hi   = mid; f_hi = f_mid;
-        end
-    end
-    mass = mid;
+
+    [~, idx] = min(abs(errs));            % closest to target
+    mass     = masses(idx);
+
+    % Optional: refine locally with a second, finer sweep
+    % lo2 = max(lo, masses(idx)-step);
+    % hi2 = min(hi, masses(idx)+step);
+    % mass = find_mass_brute(..., lo2, hi2, step/10, ...);
 end
 
-function diff = apogee_diff(otis, simObj, cmp, atmData, m_kg, W_ms, ft2m, target_ft,launchTemp)
+
+function diff = apogee_diff(otis, simObj, cmp , m_kg, W_ms, ft2m, target_ft,launchTemp)
+    opts = simObj.getOptions();
     cmp.setOverrideMass(m_kg);
     cmp.setComponentMass(m_kg);
-    opts = simObj.getOptions();
+   
     opts.setWindSpeedAverage(W_ms);
     opts.setLaunchTemperature(launchTemp+273.15);
     opts.setWindSpeedDeviation(0);
     opts.setLaunchIntoWind(false);
     opts.setTimeStep(0.05);
 
-    data = otis.simulate(simObj, 'outputs','Air pressure','atmos',atmData);
+    data=otis.simulate(simObj, outputs="ALL");
 
-    h = pressalt("m", data.("Air pressure"), "Pa") ...
-      - pressalt("m", data{1,"Air pressure"}, "Pa");
+    data.("Indicated altitude") = pressalt("m", data.("Air pressure"), "Pa") - pressalt("m", data{1, "Air pressure"}, "Pa");
 
-    diff = max(h)/ft2m - target_ft;
+    diff = max(data.("Indicated altitude"))/ft2m - target_ft;
 end
 
 function [combo, res] = split_into_pucks(req_kg, pucks)

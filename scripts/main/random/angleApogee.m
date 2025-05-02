@@ -31,8 +31,9 @@ function [launchAngles,maxAltitudes] = angleApogee (angleStep,high_angle,low_ang
         opts.setLaunchAltitude(1828);% Launch altitude in meters
         
         % Run simulation and get data
-        iSim = openrocket.simulate(sim, outputs="ALL");
+        data=openrocket.simulate(sim, outputs="ALL");
         data = openrocket.get_data(sim);
+        data = otis.simulate
         
         % Store maximum altitude (convert meters to feet)
         maxAltitudes(iAngle) = max(data.Altitude) * 3.28084;

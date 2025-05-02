@@ -6,37 +6,51 @@ step = 0.1;   % contour interval (kg)
 %-----------------------------------------------
 
 % assume windVals_mph, tempVals_C, massChart_kg are already in workspace
-data_temps = 20:1:35;
-data_winds = 4:1:10;
+data_temps = 20:1:30;
+data_winds = 4:2:10;
 
-nsims = numel(data_temps)*numel(data_winds);
+nT = numel(data_temps);   % 16
+nW = numel(data_winds);   % 7
+data_nmass = zeros(nT, nW);   % 16 × 7  (rows = temps, cols = winds)
 
-data_nmass = zeros(1,nsims);
 
-wbar = waitbar(0, sprintf('Running %d sims...', nsims));
+% --- create bar ---
+wbar = waitbar(0, 'Running simulations...');
 
-sim_num = 0;
-for i = 1:numel(data_temps)
-    for k = 1:numel(data_winds)
-        sim_num = sim_num + 1;
-        waitbar(sim_num/nsims, wbar, ...
-            sprintf('Deg: %.1f, Wind Speed: %.1f, Sim %d / %d', data_temps(i), data_winds(k), sim_num, nsims));
-        data_nmass(k,i) = req_nosemass(data_temps(i), data_winds(k));
+sim_num = 0;                       % counter for progress
+nsims   = nT * nW;                 % total number of sims
+
+for t = 1:nT
+    for w = 1:nW
+        sim_num = sim_num + 1;     % update progress counter
+        
+        % run the simulation
+        data_nmass(t, w) = req_nosemass(data_temps(t), data_winds(w))
+        
+        % progress fraction and custom message
+        frac = sim_num / nsims;
+        msg  = sprintf('Temp %.1f °C | Wind %.1f mph | Sim %d of %d', ...
+                       data_temps(t), data_winds(w), sim_num, nsims);
+        
+        % update waitbar
+        waitbar(frac, wbar, msg);
     end
 end
 
 close(wbar);
 
 
-% Compute contour levels at fixed steps
-minVal = min(data_nmass);
-maxVal = max(data_nmass);
+
+% Compute contour levels at fixed ste
+minVal = min(data_nmass(:));
+maxVal = max(data_nmass(:));
+
 levs = floor(minVal/step)*step : step : ceil(maxVal/step)*step;
 
 % Plot filled contours
 figure;
 
-contourf(data_winds, data_temps, data_nmass', levs, ...
+contourf(data_winds, data_temps, data_nmass, levs, ...
          'LineColor','none', ...
          'FaceAlpha', 0.85);
 xlabel('Wind Speed (mph)','FontSize',24);
