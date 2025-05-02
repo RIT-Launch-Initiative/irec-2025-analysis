@@ -9,6 +9,7 @@ otis = openrocket(otis_path);
 sim  = otis.sims("10MPH-TEXAS-36C-(TYP)");
 opts = sim.getOptions();
 
+
 %% CUSTOM ATMOSPHERE SETUP
 % pull GFS‐based profile instead of the default std atmosphere
 air     = load("rocket_files/midland_atmosphere.mat").airdata;
