@@ -1,31 +1,43 @@
 function [reqMass_kg, puckList_g, residual_g] = req_nosemass(launchTemp, wind_ms)
-    % Optional: target apogee (default 10100 ft)
-    targetApogee_ft = 10100;
+%REQ_NOSEMASS  Compute required adjustable nose‑cone ballast to hit target apogee
+%   Uses a cost‑function formulation with fminsearch (Nelder‑Mead)
+%   rather than root‑finding or brute‑force sweeps.
 
-    % Parameters
-    orkFilePath = 'rocket_files/IREC_2025_M6000ST-0.ork';
-    noseMin_kg = 0;
-    noseMax_kg = 2.5;
-    tol_ft = 10;
-    maxIter = 20;
-    pucks_g = [1600 800 400 200 100 50 25];
-    ft2m = 0.3048; mph2ms = 0.44704;
+    % ----- USER‑TUNABLE PARAMETERS -------------------------------------
+    targetApogee_ft = 10700;      % desired altitude [ft]
+    noseMin_kg      = 0;          % lower mass bound  [kg]
+    noseMax_kg      = 2.5;        % upper mass bound  [kg]
+    tol_ft          = 10;         % accept if |apogee‑target| ≤ tol
+    pucks_g         = [1600 800 400 200 100 50 25];   % discrete weights
+    
+    orkFilePath     = "rocket_files/IREC_2025_M6000ST-0.ork";
+    simName         = "10MPH-TEXAS-36C-(TYP)";        % baseline sim in ORK
+    ft2m            = 0.3048;
 
-
-    % Load OpenRocket setup
-    otis    = feval('openrocket', orkFilePath);
+    % ----- INITIALISE OPENROCKET DOCUMENT ------------------------------
+    otis    = feval("openrocket", orkFilePath);
     noseCmp = otis.component('name','Adjustable stability weight(s)');
-    simObj  = otis.sims("10MPH-TEXAS-36C-(TYP)");
+    simObj  = otis.sims(simName);
 
+    % ----- BUILD COST FUNCTION HANDLE ----------------------------------
+    costFun = make_cost_function(otis, simObj, noseCmp, ...
+                                 wind_ms, launchTemp, ...
+                                 targetApogee_ft, ft2m, ...
+                                 noseMin_kg, noseMax_kg);
 
-    % Simulate and get required mass
-    step_kg   = 0.01;
-    reqMass_kg = find_mass_brute(otis, simObj, noseCmp, ...
-                     wind_ms, targetApogee_ft, noseMin_kg, noseMax_kg, ...
-                     step_kg, ft2m, launchTemp);
+    % fminsearch options – stop when altitude error < tol_ft
+    opts = optimset('Display','iter', ...
+                    'TolFun',tol_ft, ...    % altitude error tolerance
+                    'TolX',0.002);          % ≈ 2 g mass resolution
 
+    m0 = 0.5*(noseMin_kg + noseMax_kg);     % mid‑range initial guess
+    [reqMass_kg, fval] = fminsearch(costFun, m0, opts);
 
-    if isnan(reqMass_kg)
+    % ----- POST‑PROCESS -----------------------------------------------
+    if fval > tol_ft  % optimizer failed to reach tolerance
+        warning('req_nosemass:NoConverge', ...
+                'Could not meet apogee tolerance (|err| = %.1f ft)', fval);
+        reqMass_kg = NaN;
         puckList_g = [];
         residual_g = NaN;
         return;
@@ -34,47 +46,38 @@ function [reqMass_kg, puckList_g, residual_g] = req_nosemass(launchTemp, wind_ms
     [puckList_g, residual_g] = split_into_pucks(reqMass_kg, pucks_g);
 end
 
-function mass = find_mass_brute(otis, simObj, cmp, W_ms, target_ft, ...
-                                lo, hi, step, ft2m, launchTemp)
+%% ------------------------------------------------------------------------
+function func = make_cost_function(otis, simObj, cmp, ...
+                                   W_ms, launchTemp, ...
+                                   target_ft, ft2m, ...
+                                   lo, hi)
+%MAKE_COST_FUNCTION  Return handle @(m) that gives altitude error [ft]
+%   Clamps mass into [lo,hi] so the optimizer cannot wander outside.
 
-    masses = lo : step : hi;              % e.g. 0 : 0.01 : 2.5
-    errs   = zeros(size(masses));         % apogee error for each mass
-
-    for k = 1:numel(masses)
-        errs(k) = apogee_diff(otis,simObj,cmp, masses(k), ...
-                              W_ms, ft2m, target_ft, launchTemp);
-    end
-
-    [~, idx] = min(abs(errs));            % closest to target
-    mass     = masses(idx);
-
-    % Optional: refine locally with a second, finer sweep
-    % lo2 = max(lo, masses(idx)-step);
-    % hi2 = min(hi, masses(idx)+step);
-    % mass = find_mass_brute(..., lo2, hi2, step/10, ...);
-end
-
-
-function diff = apogee_diff(otis, simObj, cmp , m_kg, W_ms, ft2m, target_ft,launchTemp)
-    opts = simObj.getOptions();
-    cmp.setOverrideMass(m_kg);
-    cmp.setComponentMass(m_kg);
-   
+    opts = simObj.getOptions();  % capture once – reuse inside cost()
     opts.setWindSpeedAverage(W_ms);
-    opts.setLaunchTemperature(launchTemp+273.15);
     opts.setWindSpeedDeviation(0);
     opts.setLaunchIntoWind(false);
     opts.setTimeStep(0.05);
+    opts.setLaunchTemperature(launchTemp + 273.15);   % °C → K
 
-    data=otis.simulate(simObj, outputs="ALL");
+    func = @cost;
+    function err = cost(x)
+        % Clamp mass
+        m = min(max(x(1), lo), hi);
+        cmp.setOverrideMass(m);
+        cmp.setComponentMass(m);
 
-    data.("Indicated altitude") = pressalt("m", data.("Air pressure"), "Pa") - pressalt("m", data{1, "Air pressure"}, "Pa");
-
-    diff = max(data.("Indicated altitude"))/ft2m - target_ft;
+        data = otis.simulate(simObj, 'outputs','ALL');
+        apogee_ft = max(data.Altitude)/ft2m;
+        err = abs(apogee_ft - target_ft);  % |error| for Nelder‑Mead
+    end
 end
 
+%% ------------------------------------------------------------------------
 function [combo, res] = split_into_pucks(req_kg, pucks)
-    remaining = round(req_kg * 1000);
+%SPLIT_INTO_PUCKS  Greedy decomposition of required kg into puck sizes
+    remaining = round(req_kg * 1000);  % grams
     combo = [];
     for p = pucks
         while remaining >= p
@@ -84,5 +87,3 @@ function [combo, res] = split_into_pucks(req_kg, pucks)
     end
     res = remaining;
 end
-
-

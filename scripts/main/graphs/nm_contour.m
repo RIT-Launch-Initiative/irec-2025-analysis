@@ -6,8 +6,8 @@ step = 0.1;   % contour interval (kg)
 %-----------------------------------------------
 
 % assume windVals_mph, tempVals_C, massChart_kg are already in workspace
-data_temps = 20:1:30;
-data_winds = 4:2:10;
+data_temps = 20:1:35;
+data_winds = 4:1:10;
 
 nT = numel(data_temps);   % 16
 nW = numel(data_winds);   % 7
