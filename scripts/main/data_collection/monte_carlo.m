@@ -11,22 +11,22 @@ opts = sim.getOptions();
 
 %% CUSTOM ATMOSPHERE SETUP
 % pull GFS‐based profile instead of the default std atmosphere
-site    = launchsites("spaceport-midland");
-lt      = datetime(2024,6,21,10,21,0,'TimeZone','MST');
-air     = atmosphere("gfs","pgrb2.1p00",site.lat,site.lon,lt, minpres=450);
-air.TMP = air.TMP + 273.15;                        % °C→K
+air     = load("rocket_files/midland_atmosphere.mat").airdata;
 atmData = air(:, ["HGT","PRES","TMP"]);             % pass this to simulate
+atmData.TMP = atmData.TMP + 273.15;
+
 
 %% MONTE CARLO PARAMS
-nSims                  = 250;    % at least 100 for design review
-wind_speed_avg         = 4.47;   % m/s
-wind_speed_spread      = 4.47;   % m/s
-wind_speed_deviation   = wind_speed_avg/10;
-wind_direction_mean    = 45;     % degrees
-wind_direction_spread  = 360;    % full circle
-nominal_temp = 35; % c
-temp_spread            = 15;     % °C around launch‐site nominal
-turbulence_intensity   = 0.15;
+rod_direction = 150;
+nSims                  = 500;    % at least 100 for design review
+wind_speed_avg         = 7;   % m/s
+wind_speed_spread      = 3;   % m/s
+wind_speed_deviation   = 0;
+wind_direction_mean    = 150;     % degrees
+wind_direction_spread  = 75;    % full circle
+nominal_temp = 27.5; % c
+temp_spread            = 7.5;     % °C around launch‐site nominal
+turbulence_intensity   = 0.0;
 time_step              = 0.025;  % s
 tol                    = 0.1;    % for settling‐time threshold
 
@@ -48,14 +48,14 @@ data_aoa            = zeros(ceil(tsteps),nSims);
 %% RUN MONTE CARLO
 for I = 1:nSims
     % randomize environmental inputs
-    wind_dir = wind_direction_mean + (rand-0.5)*wind_direction_spread;
     opts.setLaunchIntoWind(false);
-    opts.setWindDirection(wind_dir);
+    wind_dir = wind_direction_mean + (rand-0.5)*wind_direction_spread;
+    opts.setWindDirection(deg2rad(wind_dir));
     opts.setWindTurbulenceIntensity(turbulence_intensity);
     opts.setWindSpeedAverage(wind_speed_avg + (rand-0.5)*wind_speed_spread);
-    opts.setWindSpeedDeviation(wind_speed_deviation);
-    launchTemp = opts.getLaunchTemperature + (rand-0.5)*temp_spread;
-    opts.setLaunchTemperature(launchTemp);
+    launchTemp = nominal_temp + (rand-0.5)*temp_spread;
+    opts.setLaunchTemperature(launchTemp+273.15);
+    opts.setLaunchRodDirection(deg2rad(rod_direction));
     opts.setTimeStep(time_step);
     
     % simulate using custom atmosphere
@@ -66,14 +66,14 @@ for I = 1:nSims
     % record raw outputs
     data_wind_speeds(I) = data{1,"Wind velocity"};
     data_wind_dirs(I)   = wind_dir;
-    data_temp_init(I)   = data{1,"Air temperature"} - 273.15; % back to °C
+    data_temp_init(I)   = launchTemp; % back to °C
     data_apogee(I)      = max(data.Altitude);
     
     % isolate launch‐rod to +3 s post‐burn
     lrIdx = eventfilter("LAUNCHROD");
     brIdx = eventfilter("BURNOUT");
     t_launch = data.Time(lrIdx);
-    t_burn   = data.Time(brIdx);
+    t_burn = seconds(1.736); %unknown reason why this was returning 0x1 matrix. set hard value instead. works now /shrug. thx chatgpt
     tr = timerange(t_launch, t_burn+seconds(3), "open");
     sub = data(tr,:);
     
