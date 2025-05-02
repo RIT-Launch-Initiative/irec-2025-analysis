@@ -8,8 +8,8 @@ orkFilePath = 'rocket_files/IREC_2025_M6000ST-0.ork';
 pucks_g = [1600 800 400 200 100 50 25];
 
 % Temperature and wind grids
-tempVals_C   = 20:2:40;   % °C grid
-windVals_mph = 2:2:20;    % mph grid
+tempVals_C   = 20:10:40;   % °C grid
+windVals_mph = 2:10:20;    % mph grid
 
 % Nose mass bounds and target
 noseMin_kg   = 1;
