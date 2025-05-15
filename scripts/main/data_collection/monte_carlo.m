@@ -19,7 +19,7 @@ atmData.TMP = atmData.TMP + 273.15;
 
 %% MONTE CARLO PARAMS
 rod_direction = 150;
-nSims                  = 50;    % at least 100 for design review
+nSims                  = 507;    % at least 100 for design review
 wind_speed_avg         = 7;   % m/s
 wind_speed_spread      = 0;   % m/s
 wind_speed_deviation   = 0;

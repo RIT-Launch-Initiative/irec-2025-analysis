@@ -8,7 +8,7 @@ function [reqMass_kg, puckList_g, residual_g] = nm_getmass(launchTemp, wind_ms)
     noseMin_kg      = 0;          % lower mass bound  [kg]
     noseMax_kg      = 2.5;        % upper mass bound  [kg]
     tol_ft          = 10;         % accept if |apogee‑target| ≤ tol
-    pucks_g         = [1600 800 400 200 100 50 25];   % discrete weights
+    pucks_g         = [1645 795 390 195 95 45];   % discrete weights
     
     orkFilePath     = "rocket_files/IREC_2025_M6000ST-0.ork";
     simName         = "10MPH-TEXAS-36C-(TYP)";        % baseline sim in ORK
@@ -76,14 +76,15 @@ end
 
 %% ------------------------------------------------------------------------
 function [combo, res] = split_into_pucks(req_kg, pucks)
-%SPLIT_INTO_PUCKS  Greedy decomposition of required kg into puck sizes
-    remaining = round(req_kg * 1000);  % grams
+% one‑per‑size decomposition
+    remaining = round(req_kg * 1000);   % grams to go
     combo = [];
-    for p = pucks
-        while remaining >= p
+    for p = pucks                     % assume pucks sorted big→small
+        if remaining >= p             % take it once, then move on
             combo(end+1) = p; %#ok<AGROW>
             remaining = remaining - p;
         end
     end
-    res = remaining;
+    res = remaining;                  % grams still unfilled
 end
+
