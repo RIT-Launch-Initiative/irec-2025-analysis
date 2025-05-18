@@ -1,4 +1,6 @@
 function [reqMass_kg, puckList_g, residual_g] = nm_getmass(launchTemp, wind_ms)
+
+addpath(genpath("C:\Users\kyle1\MATLAB\Projects\lmatlib\sim"));
 %REQ_NOSEMASS  Compute required adjustable nose‑cone ballast to hit target apogee
 %   Uses a cost‑function formulation with fminsearch (Nelder‑Mead)
 %   rather than root‑finding or brute‑force sweeps.
