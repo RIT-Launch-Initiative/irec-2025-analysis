@@ -74,6 +74,15 @@ fprintf('2. Preparing to run optimization for each time slot...\n');
 num_sims = numel(launch_window);
 optimal_masses_kg = nan(1, num_sims);
 
+% get the latest data from noaa
+utc_now  = datetime('now','TimeZone','UTC') - hours(2);    % leave ~2 h for files to land
+cyc_hour = floor(hour(utc_now)/1)*1;                       % HRRR cycles are hourly
+reftime  = datetime(year(utc_now),month(utc_now),day(utc_now),cyc_hour,0,0,'TimeZone','UTC');
+
+% one object for the whole window ─ it already carries all lead times
+hrrr = ncep.forecast("hrrr","wrfprsf",launch_window,reftime);
+
+
 % 3. RUN SIMULATION FOR EACH FORECAST TIME
 % --------------------------------------------------------------------------
 wbar = waitbar(0, 'Starting simulations...');
@@ -87,15 +96,15 @@ for i = 1:num_sims
     waitbar((i-1)/num_sims, wbar, waitbar_msg);
     
     try
-        airdata = atmosphere("hrrr", "wrfprsf", site.lat, site.lon, current_time, ...
-            minpres = 450, cache = "airdata.mat");
+        airdata = hrrr.read_point(site.lat,site.lon, ...
+            layer = digitsPattern+" mb", ...
+            field = ["UGRD","VGRD","HGT","TMP"], ...
+            time  = current_time);                 % specific lead time
     catch ME
-        fprintf('\nError fetching atmospheric data for %s.\n', string(current_time));
-        fprintf('Error message: %s\n', ME.message);
-        fprintf('Skipping this time slot.\n');
-        continue; % Skip to the next iteration
+        fprintf('\n⟡ no HRRR file yet for %s → skip\n',string(current_time));
+        fprintf('  (%s)\n',ME.message);
+        continue
     end
-    % --- FIX ends here ---
 
     % Update waitbar
     waitbar_msg = sprintf('Optimizing for %s (%d/%d)', string(current_time), i, num_sims);
