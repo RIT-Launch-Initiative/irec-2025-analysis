@@ -1,4 +1,4 @@
-function [reqMass_kg, puckList_g, residual_g] = nm_getmass(launchTemp, wind_ms)
+function [reqMass_kg, puckList_g, residual_g] = nm_getmass(launchtime)
 
 addpath(genpath("C:\Users\kyle1\MATLAB\Projects\lmatlib\sim"));
 %REQ_NOSEMASS  Compute required adjustable nose‑cone ballast to hit target apogee
@@ -15,6 +15,8 @@ addpath(genpath("C:\Users\kyle1\MATLAB\Projects\lmatlib\sim"));
     orkFilePath     = "rocket_files/IREC_2025_M6000ST-0.ork";
     simName         = "10MPH-TEXAS-36C-(TYP)";        % baseline sim in ORK
     ft2m            = 0.3048;
+    
+
 
     % ----- INITIALISE OPENROCKET DOCUMENT ------------------------------
     otis    = feval("openrocket", orkFilePath);
@@ -23,7 +25,6 @@ addpath(genpath("C:\Users\kyle1\MATLAB\Projects\lmatlib\sim"));
 
     % ----- BUILD COST FUNCTION HANDLE ----------------------------------
     costFun = make_cost_function(otis, simObj, noseCmp, ...
-                                 wind_ms, launchTemp, ...
                                  targetApogee_ft, ft2m, ...
                                  noseMin_kg, noseMax_kg);
 
@@ -33,7 +34,7 @@ addpath(genpath("C:\Users\kyle1\MATLAB\Projects\lmatlib\sim"));
                     'TolX',0.002);          % ≈ 2 g mass resolution
 
     m0 = 0.5*(noseMin_kg + noseMax_kg);     % mid‑range initial guess
-    [reqMass_kg, fval] = fminsearch(costFun, m0, opts);
+    l[reqMass_kg, fval] = fminsearch(costFun, m0, opts);
 
     % ----- POST‑PROCESS -----------------------------------------------
     if fval > tol_ft  % optimizer failed to reach tolerance
@@ -70,7 +71,19 @@ function func = make_cost_function(otis, simObj, cmp, ...
         cmp.setOverrideMass(m);
         cmp.setComponentMass(m);
 
-        data = otis.simulate(simObj, 'outputs','ALL');
+        % ---- Get custom atmosphere -----
+        site    = launchsites("spaceport-midland");
+        lt      = launchtime;
+        air     = atmosphere("gfs","pgrb2.1p00",site.lat,site.lon,lt, minpres=450);
+        air.TMP = air.TMP + 273.15;                        % °C→K
+        atmData = air(:, ["HGT","PRES","TMP"]);             % pass this to simulate
+        atmData.TMP = atmData.TMP + 273.15;
+
+        % simulate using custom atmosphere
+        data = otis.simulate(sim, ...
+            'outputs', 'ALL', ...
+            'atmos',   atmData);
+
         apogee_ft = max(data.Altitude)/ft2m;
         err = abs(apogee_ft - target_ft);  % |error| for Nelder‑Mead
     end
