@@ -19,14 +19,14 @@ atmData.TMP = atmData.TMP + 273.15;
 
 %% MONTE CARLO PARAMS
 rod_direction = 150;
-nSims                  = 500;    % at least 100 for design review
-wind_speed_avg         = 6.7;   % m/s
-wind_speed_spread      = 4.55;   % m/s
+nSims                  = 10;    % at least 100 for design review
+wind_speed_avg         = 4;   % m/s
+wind_speed_spread      = 0;   % m/s
 wind_speed_deviation   = 0;
 wind_direction_mean    = 150;     % degrees
-wind_direction_spread  = 360;    % full circle
-nominal_temp = 24.7; % c
-temp_spread            = 10;     % °C around launch‐site nominal
+wind_direction_spread  = 0;    % full circle
+nominal_temp = 27.5; % c
+temp_spread            = 0;     % °C around launch‐site nominal
 turbulence_intensity   = 0.0;
 time_step              = 0.025;  % s
 tol                    = 0.1;    % for settling‐time threshold
@@ -90,7 +90,7 @@ for I = 1:nSims
     init_val              = aoa_deg(1);
     thresh                = tol*init_val;
     data_settle_thresh(I) = thresh;
-    idx_over = find(aoa_deg>thresh,1,'last');
+    idx_over = find(aoa_deg<thresh,1,'first');
     data_settle_time(I)   = seconds(sub.Time(idx_over));
     data_overshoot(I)     = computeOvershoot(aoa_deg);
     
