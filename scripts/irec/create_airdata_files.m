@@ -6,11 +6,11 @@ clear; clc;
 
 % --- settings you might change ------------------------------------------------
 site_name           = "spaceport-midland";      % launch site in your launchsites()
-nominal_launch_time = datetime(2025,06,11,12,0,0,'TimeZone','-05:00');
+nominal_launch_time = datetime(2025,06,14,12,0,0,'TimeZone','-05:00');
 time_window_hours   = 6;                       % ± range
 time_step_hours     = 1;                        % resolution
 ref_time            = datetime('now','TimeZone','-05:00') - hours(6);
-cache_dir           = fullfile(pwd,'scripts\irec\airdata_cache');
+cache_dir           = fullfile(pwd,'scripts\irec\airdata_cache\thur');
 % ------------------------------------------------------------------------------
 if ~isfolder(cache_dir), mkdir(cache_dir); end
 site = launchsites(site_name);
