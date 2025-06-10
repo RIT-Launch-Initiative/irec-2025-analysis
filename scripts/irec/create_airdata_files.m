@@ -6,11 +6,11 @@ clear; clc;
 
 % --- settings you might change ------------------------------------------------
 site_name           = "spaceport-midland";      % launch site in your launchsites()
-nominal_launch_time = datetime(2025,06,14,12,0,0,'TimeZone','-05:00');
-time_window_hours   = 6;                       % ± range
+nominal_launch_time = datetime(2025,06,11,12,0,0,'TimeZone','-05:00');
+time_window_hours   = 5;                       % ± range
 time_step_hours     = 1;                        % resolution
 ref_time            = datetime('now','TimeZone','-05:00') - hours(6);
-cache_dir           = fullfile(pwd,'scripts\irec\airdata_cache\thur');
+cache_dir           = fullfile(pwd,'scripts\irec\airdata_cache\wed');
 % ------------------------------------------------------------------------------
 if ~isfolder(cache_dir), mkdir(cache_dir); end
 site = launchsites(site_name);
@@ -25,8 +25,8 @@ for i = 1:numel(launch_window)
     fname      = fullfile(cache_dir, ...
                    sprintf('airdata_%s.mat',datestr(t,'yyyymmdd_HHMM')));
     try
-        airdata = atmosphere("gfs","pgrb2.0p25",site.lat,site.lon,t, ...
-                             minpres=550,reftime=ref_time);
+        airdata = atmosphere("nam","awphys",site.lat,site.lon,t, ...
+                             minpres=450,reftime=ref_time);
         save(fname,'airdata');                % overwrite if it exists
         fprintf("✓ %s saved\n",fname);
     catch ME

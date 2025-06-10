@@ -19,13 +19,13 @@ atmData.TMP = atmData.TMP + 273.15;
 
 %% MONTE CARLO PARAMS
 rod_direction = 150;
-nSims                  = 500;    % at least 100 for design review
+nSims                  = 150;    % at least 100 for design review
 wind_speed_avg         = 6.7;   % m/s
-wind_speed_spread      = 4.55;   % m/s
+wind_speed_spread      = 2.7;   % m/s
 wind_speed_deviation   = 0;
 wind_direction_mean    = 150;     % degrees
-wind_direction_spread  = 360;    % full circle
-nominal_temp = 24.7; % c
+wind_direction_spread  = 100;    % full circle
+nominal_temp = 25; % c
 temp_spread            = 10;     % °C around launch‐site nominal
 turbulence_intensity   = 0.0;
 time_step              = 0.025;  % s
