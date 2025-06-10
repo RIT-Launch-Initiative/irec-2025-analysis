@@ -12,17 +12,17 @@ site_name   = "spaceport-midland";
 nose_cmp_name = 'Adjustable stability weight(s)';
 
 ref_time = datetime('now','TimeZone','-05:00') - hours(12);
-nominal_launch_time = datetime(2025,06,11,12,0,0,'TimeZone','-05:00');
+nominal_launch_time = datetime(2025,06,12,12,0,0,'TimeZone','-05:00');
 time_window_hours   = 5;                       % ± range
 time_step_hours     = 1;                        % resolution
 
-target_apogee_ft = 10775;
+target_apogee_ft = 10658;
 mass_min_kg      = 0.0;
 mass_max_kg      = 2.5;
 tolerance_ft     = 10;
 pucks_g          = [1645 795 390 195 95 45];
 
-cache_dir = fullfile(pwd,'scripts\irec\airdata_cache\wed');   % same folder used by creator script
+cache_dir = fullfile(pwd,'scripts\irec\airdata_cache\thur');   % same folder used by creator script
 % --------------------------------------------------------------------
 
 launch_window = nominal_launch_time + ...

@@ -20,15 +20,15 @@ atmData.TMP = atmData.TMP + 273.15;
 %% MONTE CARLO PARAMS
 rod_direction = 150;
 nSims                  = 150;    % at least 100 for design review
-wind_speed_avg         = 6.7;   % m/s
-wind_speed_spread      = 2.7;   % m/s
+wind_speed_avg         = 4.47;   % m/s
+wind_speed_spread      = 1.3;   % m/s
 wind_speed_deviation   = 0;
-wind_direction_mean    = 150;     % degrees
-wind_direction_spread  = 100;    % full circle
-nominal_temp = 25; % c
-temp_spread            = 10;     % °C around launch‐site nominal
+wind_direction_mean    = 120;     % degrees
+wind_direction_spread  = 20;    % full circle
+nominal_temp = 29; % c
+temp_spread            = 6;     % °C around launch‐site nominal
 turbulence_intensity   = 0.0;
-time_step              = 0.025;  % s
+time_step              = 0.05;  % s
 tol                    = 0.1;    % for settling‐time threshold
 
 %% PREALLOCATE
@@ -121,24 +121,33 @@ exportResultsToExcel(outFile, ...
 
 
 
-%% Visuals
+max_wind = max(data_wind_speeds);
+min_wind = min(data_wind_speeds);
+wind_range = max_wind-min_wind;
+avg_wind = (max_wind-min_wind)/2;
 
-close all;
+max_wind_dir = max(data_wind_dirs);
+min_wind_dir = min(data_wind_dirs);
+wind_dir_range = max_wind_dir-min_wind_dir;
+avg_wind_dir = (max_wind_dir-min_wind_dir)/2;
 
-figure;
-scatter(...
-    data_wind_speeds*2.237136, ...
-    data_stabOffRod, ...
-    36, ...         % marker size (tweak as you like)
-    'filled' ...    % makes the circles solid
-);
-xlabel('Wind speed [mph]')
-ylabel('Stability off the rod [cal]')
-set(gca,'FontSize',24)
-axis padded
-grid minor
+max_temperature = max(data_temp_init);
+min_temperature = min(data_temp_init);
+temp_range = max_temperature-min_temperature;
+avg_temp = (max_temperature-min_temperature)/2;
 
-% fig_export('windvsstab.pdf')
+% linear reg coefs
+wind_sped_coef = -4.82;
+temp_coef = 0.388;
+wind_dir_coef= -0.823;
+wid_dir_sqrd_coef = 0.002766;
+
+% stackup
+wind_stack = wind_sped_coef*wind_range
+temp_stack = temp_coef*temp_range
+wind_dir_stack = wind_dir_coef*wind_dir_range+wind_dir_range^2*wid_dir_sqrd_coef
+total_stack = wind_stack+temp_stack+wind_dir_stack
+
 
 
 
