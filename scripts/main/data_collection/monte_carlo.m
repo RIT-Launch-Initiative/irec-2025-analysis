@@ -12,14 +12,14 @@ opts = sim.getOptions();
 
 %% CUSTOM ATMOSPHERE SETUP
 % pull GFS‐based profile instead of the default std atmosphere
-air     = load("rocket_files/midland_atmosphere.mat").airdata;
-atmData = air(:, ["HGT","PRES","TMP"]);             % pass this to simulate
+air     = load("scripts\irec\airdata_cache\hrr_wed_morn\airdata_20250611_1200.mat").airdata;
+atmData = air(:, ["HGT","PRES","TMP","UGRD","VGRD"]);             % pass this to simulate
 atmData.TMP = atmData.TMP + 273.15;
 
 
 %% MONTE CARLO PARAMS
 rod_direction = 150;
-nSims                  = 150;    % at least 100 for design review
+nSims                  = 1;    % at least 100 for design review
 wind_speed_avg         = 4.47;   % m/s
 wind_speed_spread      = 1.3;   % m/s
 wind_speed_deviation   = 0;
@@ -49,23 +49,23 @@ data_aoa            = zeros(ceil(tsteps),nSims);
 %% RUN MONTE CARLO
 for I = 1:nSims
     % randomize environmental inputs
-    opts.setLaunchIntoWind(false);
+    opts.setLaunchIntoWind(true);
     wind_dir = wind_direction_mean + (rand-0.5)*wind_direction_spread;
     opts.setWindDirection(deg2rad(wind_dir));
     opts.setWindTurbulenceIntensity(turbulence_intensity);
-    opts.setWindSpeedAverage(wind_speed_avg + (rand-0.5)*wind_speed_spread);
+    % opts.setWindSpeedAverage(wind_speed_avg + (rand-0.5)*wind_speed_spread);
     launchTemp = nominal_temp + (rand-0.5)*temp_spread;
     opts.setLaunchTemperature(launchTemp+273.15);
     opts.setLaunchRodDirection(deg2rad(rod_direction));
     opts.setTimeStep(time_step);
     
     % simulate using custom atmosphere
-    data = otis.simulate(sim, ...
-        'outputs', 'ALL', ...
-        'atmos',   atmData);
+    data = otis.simulate(sim,'outputs','Altitude', ...
+                         atmos=atmData(:,["HGT","PRES","TMP","UGRD","VGRD"]));
+
     
     % record raw outputs
-    data_wind_speeds(I) = data{1,"Wind velocity"};
+    data_wind_speeds(I) =  opts.getWindSpeedAverage
     data_wind_dirs(I)   = wind_dir;
     data_temp_init(I)   = launchTemp; % back to °C
     data_apogee(I)      = max(data.Altitude);

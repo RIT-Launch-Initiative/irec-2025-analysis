@@ -10,10 +10,14 @@ rocket_file = "rocket_files\IREC_2025_M6000ST-0.ork";
 sim_name    = "10MPH-TEXAS-36C-(TYP)";
 site_name   = "spaceport-midland";
 nose_cmp_name = 'Adjustable stability weight(s)';
+otis = openrocket(rocket_file);
+sim  = otis.sims("10MPH-TEXAS-36C-(TYP)");
+opts = sim.getOptions();
 
-ref_time = datetime('now','TimeZone','-05:00') - hours(12);
-nominal_launch_time = datetime(2025,06,12,12,0,0,'TimeZone','-05:00');
-time_window_hours   = 5;                       % ± range
+
+ref_time = datetime('now','TimeZone','-05:00') - hours(1);
+nominal_launch_time = datetime(2025,06,11,13,0,0,'TimeZone','-05:00');
+time_window_hours   = 3;                       % ± range
 time_step_hours     = 1;                        % resolution
 
 target_apogee_ft = 10658;
@@ -22,7 +26,7 @@ mass_max_kg      = 2.5;
 tolerance_ft     = 10;
 pucks_g          = [1645 795 390 195 95 45];
 
-cache_dir = fullfile(pwd,'scripts\irec\airdata_cache\thur');   % same folder used by creator script
+cache_dir = fullfile(pwd,'scripts\irec\airdata_cache\hrr_wed_site');   % same folder used by creator script
 % --------------------------------------------------------------------
 
 launch_window = nominal_launch_time + ...
@@ -55,8 +59,8 @@ for i = 1:num_sims
         airdata = S.airdata;
     else
         warning("Cache miss – fetching live for %s",string(t));
-        airdata = atmosphere("nam","awphys",site.lat,site.lon,t, ...
-                             minpres=450,cache=matfile,reftime=ref_time);
+        % airdata = atmosphere("gfs","pgrb2.0p25",site.lat,site.lon,t, ...
+                             % minpres=450,cache=matfile,reftime=ref_time);
     end
     % -------------------------------------------------------------------------
 
@@ -65,61 +69,71 @@ for i = 1:num_sims
     launch_temp_K = interp1(airdata.HGT,airdata.TMP,site.alt,'linear','extrap');
     u = interp1(airdata.HGT,airdata.UGRD,site.alt,'linear','extrap');
     v = interp1(airdata.HGT,airdata.VGRD,site.alt,'linear','extrap');
+
+    fprintf('\n U comp %0.1f, V comp %0.1f',u,v);
     wind_speed_ms = hypot(v,u);
 
     fprintf(' %s  %.1f °C  %.1f m/s  ',datestr(t),launch_temp_K-273.15,wind_speed_ms);
     
 
-    [req_mass_kg,apogee_ft] = nm_getmass(launch_temp_K,wind_speed_ms, ...
-        otis,sim,nose_component,target_apogee_ft,mass_min_kg,mass_max_kg, ...
-        tolerance_ft,ft2m,airdata);
+    % [req_mass_kg,apogee_ft] = nm_getmass(launch_temp_K,wind_speed_ms, ...
+    %     otis,sim,nose_component,target_apogee_ft,mass_min_kg,mass_max_kg, ...
+    %     tolerance_ft,ft2m,airdata,u,v);
 
-    optimal_masses_kg(i) = req_mass_kg;
+    data      = otis.simulate(sim,'outputs','Altitude', ...
+                 atmos=airdata(:,["HGT","PRES","TMP","UGRD","VGRD"]));
+
+    apogee_ft = max(data.Altitude)/ft2m;
+
+    % optimal_masses_kg(i) = req_mass_kg;
     data_launchtemps(i)  = launch_temp_K-273.15;
     data_launchwinds(i)  = wind_speed_ms;
     data_apogees(i)      = apogee_ft;
     data_wind_dir(i) = rad2deg(unwrap(atan2(u,v)));
 
+    fprintf('Wind Direction %0.1f  ',rad2deg(unwrap(atan2(u,v))));
 
 
-
-    if ~isnan(req_mass_kg)
-        fprintf("mass %.3f kg\n",req_mass_kg);
-    else
-        fprintf("failed\n");
-    end
-    waitbar(i/num_sims,wbar);
+    % 
+    % if ~isnan(req_mass_kg)
+    %     fprintf("mass %.3f kg\n",req_mass_kg);
+    % else
+    %     fprintf("failed\n");
+    % end
+    % waitbar(i/num_sims,wbar);
 end
 close(wbar);
 
+avg_mass_kg = 1.035;
+
 % ---- PICK NOSE‑MASS THAT MINIMISES RMS APOGEE ERROR (not simple mean) ----
-errFun = @(m) rms( arrayfun(@(k) ...
-          nm_apog_at_mass(m,launch_window(k),otis,sim,nose_component, ...
-                          cache_dir,site,ref_time,ft2m,target_apogee_ft), ...
-          1:num_sims) , 'omitnan');
+% errFun = @(m) rms( arrayfun(@(k) ...
+%           nm_apog_at_mass(m,launch_window(k),otis,sim,nose_component, ...
+%                           cache_dir,site,ref_time,ft2m,target_apogee_ft), ...
+%           1:num_sims) , 'omitnan');
 
-best_mass_kg = fminbnd(errFun,mass_min_kg,mass_max_kg);
-avg_mass_kg  = best_mass_kg;   % keep the old name so the rest of the script works
+% best_mass_kg = fminbnd(errFun,mass_min_kg,mass_max_kg);
+% avg_mass_kg  = best_mass_kg;   % keep the old name so the rest of the script works
 
-std_dev_kg  = std(optimal_masses_kg,'omitnan');
+% std_dev_kg  = std(optimal_masses_kg,'omitnan');
 [puck_combo_g,residual_g] = split_into_pucks(avg_mass_kg,pucks_g);
 
 fprintf('\n--- LAUNCH‑DAY RECOMMENDATION ---\n');
 fprintf('Avg nose mass: %.3f kg  (%.0f g)\n',avg_mass_kg,avg_mass_kg*1000);
-fprintf('Std dev:       %.3f kg  (%.0f g)\n',std_dev_kg,std_dev_kg*1000);
+% fprintf('Std dev:       %.3f kg  (%.0f g)\n',std_dev_kg,std_dev_kg*1000);
 fprintf('Pucks:         %s g  (sum %.0f g, residual %.0f g)\n', ...
         mat2str(puck_combo_g),sum(puck_combo_g),residual_g);
 
 figure;
 tlo = tiledlayout(2,2,'Padding','compact','TileSpacing','compact');
 
-% 1) Optimal Nose Mass
-nexttile(tlo,1)
-plot(launch_window, optimal_masses_kg*1000, '-o','LineWidth',1.5)
-grid on; datetick('x','keeplimits')
-xlabel('Launch Time')
-ylabel('Nose Mass (g)')
-title('Optimal Nose Mass')
+% % 1) Optimal Nose Mass
+% nexttile(tlo,1)
+% plot(launch_window, optimal_masses_kg*1000, '-o','LineWidth',1.5)
+% grid on; datetick('x','keeplimits')
+% xlabel('Launch Time')
+% ylabel('Nose Mass (g)')
+% title('Optimal Nose Mass')
 
 
 % 2) Wind Speed
@@ -178,20 +192,20 @@ for i = 1:num_sims
 end
 close(wbar2);
 
-% % Plot
-% nexttile(tlo,[2 1]) % spans 2 rows, 1 column
-% plot(launch_window, abs(fixed_apogees-10700), '-o','LineWidth',1.5);
-% grid on; datetick('x','keeplimits');
-% xlabel('Launch Time');
-% ylabel('Apogee Error (ft)');
-% ytickformat('%0.0f')
-% title(sprintf('Apogee Error vs. Time @ %.3f kg Nose Mass', avg_mass_kg));
-% xtickangle(45);
+% Plot
+figure;
+plot(launch_window, (fixed_apogees-10700), '-o','LineWidth',1.5);
+grid on; datetick('x','keeplimits');
+xlabel('Launch Time');
+ylabel('Apogee Error (ft)');
+ytickformat('%0.0f')
+title(sprintf('Apogee Error vs. Time @ %.3f kg Nose Mass', avg_mass_kg));
+xtickangle(45);
 
 
 % ====== helper functions (unchanged from original) ===========================
 function [reqMass_kg,apogee_ft] = nm_getmass(Tlaunch_K,wind_speed_ms, ...
-                    otis,simObj,cmp,target_ft,lo_kg,hi_kg,tol_ft,ft2m,airdata)
+                    otis,simObj,cmp,target_ft,lo_kg,hi_kg,tol_ft,ft2m,airdata,u,v)
     costFun = make_cost_function(otis,simObj,cmp,wind_speed_ms,Tlaunch_K, ...
                                  target_ft,ft2m,lo_kg,hi_kg,airdata);
     opts    = optimset('Display','none','TolFun',tol_ft,'TolX',0.002);
@@ -201,9 +215,27 @@ function [reqMass_kg,apogee_ft] = nm_getmass(Tlaunch_K,wind_speed_ms, ...
     if exitflag<=0 || fval>tol_ft || reqMass_kg<lo_kg || reqMass_kg>hi_kg
         reqMass_kg = NaN; apogee_ft = NaN; return
     end
-    cmp.setOverrideMass(reqMass_kg); cmp.setComponentMass(reqMass_kg);
+    % cmp.setOverrideMass(reqMass_kg); cmp.setComponentMass(reqMass_kg);
+
+
+    rocket_file = "rocket_files\IREC_2025_M6000ST-0.ork";
+
+    otis = openrocket(rocket_file);
+    sim  = otis.sims("10MPH-TEXAS-36C-(TYP)");
+    opts = sim.getOptions();
+
+    u = interp1(airdata.HGT,airdata.UGRD,875,'linear','extrap');
+    v = interp1(airdata.HGT,airdata.VGRD,875,'linear','extrap');
+
+    wind_dir = rad2deg(unwrap(atan2(u,v)));
+
+    opts.setLaunchIntoWind(true);
+    opts.setWindDirection(deg2rad(wind_dir))
+
     data      = otis.simulate(simObj,'outputs','Altitude', ...
                  atmos=airdata(:,["HGT","PRES","TMP","UGRD","VGRD"]));
+
+
     apogee_ft = max(data.Altitude)/ft2m;
 end
 
