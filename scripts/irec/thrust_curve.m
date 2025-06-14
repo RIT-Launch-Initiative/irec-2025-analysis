@@ -126,6 +126,13 @@ tc_plot =[0.026123011	130.2322719
 1.737802279	46.5113432
 ]
 
+figure
+plot(tc_plot(:,1),tc_plot(:,2))
+hold on
+plot(tc_engine(:,1),tc_engine(:,2))
+plot(aerotech_plot(:,1),aerotech_plot(:,2))
+
+
 
 figure
 for i = 1:height(tc_engine)

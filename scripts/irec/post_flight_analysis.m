@@ -1,6 +1,32 @@
 clear;
 close all
 
+% openrocket
+rocket_file = "rocket_files\IREC_2025_M6000ST-0.ork";
+sim_name    = "10MPH-TEXAS-36C-(TYP)";
+site_name   = "spaceport-midland";
+nose_cmp_name = 'Adjustable stability weight(s)';
+otis = openrocket(rocket_file);
+sim  = otis.sims("10MPH-TEXAS-36C-(TYP)");
+opts = sim.getOptions();
+
+site = launchsites("spaceport-midland")
+
+nominal_launch_time = datetime(2025,06,11,13,0,0,'TimeZone','-05:00');
+
+airdata = atmosphere("hrrr","wrfprsf",site.lat,site.lon,nominal_launch_time, ...
+                             minpres=450);
+
+airdata.TMP = airdata.TMP + 273.15;
+
+or_data      = otis.simulate(sim,'outputs','ALL', ...
+             atmos=airdata(:,["HGT","PRES","TMP","UGRD","VGRD"]));
+
+
+
+
+
+
 filename1 = 'post_flight_data\_T144RITrk__06-11-2025_13_32_22.csv';
 filename2 = 'post_flight_data\OTIS Primary RRC3.csv'
 filename3 = 'post_flight_data\OTIS Secondary RRC3.csv'
@@ -51,7 +77,9 @@ hold off;
 
 
 
-
+% max speed
+max_rc1 = max(data_rc1.Velocity)
+max_rc2 = max(data_rc2.Velocity)
 
 
 
@@ -84,4 +112,21 @@ ylim([0 9500])
 % y
 
 title('RRC3_2 Data');
+
+
+figure
+
+plot(or_data.Time,(or_data.('Vertical velocity')*3.28084))
+hold on
+
+plot(data_rc2.Time,data_rc2.Velocity)
+
+
+plot(data_rc1.Time,data_rc1.Velocity)
+hold off
+
+xlim([seconds(0.02) seconds(5)])
+
+
+
 
